@@ -1,6 +1,8 @@
 # escape=`
-ARG JAVA_VERSION=11.0.21_9
-FROM eclipse-temurin:"${JAVA_VERSION}"-jdk-windowsservercore-1809
+ARG JAVA_VERSION=17.0.8.1_1
+ARG TOOLS_WINDOWS_VERSION=1809
+FROM eclipse-temurin:"${JAVA_VERSION}"-jdk-windowsservercore-"${TOOLS_WINDOWS_VERSION}"
+
 # hadolint shell=powershell
 
 ARG user=jenkins
