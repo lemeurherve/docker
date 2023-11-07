@@ -150,10 +150,14 @@ if($target -eq "test") {
         $configuration.CodeCoverage.Enabled = $false
 
         Write-Host "= TEST: Testing all images..."
-        foreach($image in $builds.Keys) {
-            Test-Image $image
-        }
-
+        # foreach($image in $builds.Keys) {
+        #     Test-Image $image
+        # }
+        $processorCount = [Environment]::ProcessorCount
+        $processorMultiple = 2
+        $builds.Keys | ForEach-Object -Parallel {
+            Test-Image @_
+        } -ThrottleLimit ($processorCount * $processorMultiple)
         # Fail if any test failures
         if($testFailed -ne $false) {
             Write-Error "Test stage failed!"
