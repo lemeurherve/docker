@@ -21,3 +21,14 @@ services:
         JENKINS_SHA: ${JENKINS_SHA}
         COMMIT_SHA: ${COMMIT_SHA}
         TOOLS_WINDOWS_VERSION: ${TOOLS_WINDOWS_VERSION}
+  jdk21:
+    image: jdk21-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}
+    build:
+      context: ./
+      dockerfile: ./windows/${WINDOWS_FLAVOR}/hotspot/Dockerfile
+      args:
+        JAVA_VERSION: "21_35"
+        JENKINS_VERSION: ${JENKINS_VERSION}
+        JENKINS_SHA: ${JENKINS_SHA}
+        COMMIT_SHA: ${COMMIT_SHA}
+        TOOLS_WINDOWS_VERSION: ${TOOLS_WINDOWS_VERSION}
