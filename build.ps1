@@ -94,7 +94,43 @@ if($lastExitCode -ne 0 -and !$DryRun) {
     exit $lastExitCode
 }
 
-function TestImage {
+$scriptBlock = {
+    function TestImage {
+        param (
+            $ImageName
+        )
+        $errors = @()
+    
+        Write-Host "= TEST: Testing image ${ImageName}:"
+    
+        $env:CONTROLLER_IMAGE = $ImageName
+        $env:DOCKERFILE = 'windows/{0}/hotspot/Dockerfile' -f $env:WINDOWS_FLAVOR
+        if (Test-Path ".\target\$ImageName") {
+            Remove-Item -Recurse -Force ".\target\$ImageName"
+        }
+        New-Item -Path ".\target\$ImageName" -Type Directory | Out-Null
+        $configuration.TestResult.OutputPath = ".\target\$ImageName\junit-results.xml"
+    
+        $TestResults = Invoke-Pester -Configuration $configuration
+        if ($TestResults.FailedCount -gt 0) {
+            $errorMessage = "There were $($TestResults.FailedCount) failed tests in $ImageName"
+            Write-Host "== TestImage ${ImageName}: $errorMessage"
+            $errors+= $errorMessage
+        } else {
+            Write-Host "There were $($TestResults.PassedCount) passed tests out of $($TestResults.TotalCount) in $ImageName"
+        }
+        Remove-Item env:\CONTROLLER_IMAGE
+        Remove-Item env:\DOCKERFILE
+    }
+
+    $function:TestImage = [scriptblock]::Create($using:funcDef)
+    $res = TestImage -ImageName $_
+    $dict = $using:threadSafeDictionary
+    $outObject = New-Object PSObject -Property @{ errors = $res.errors }
+    $dict.TryAdd($res.ImageName, $outObject) | Out-Null
+}
+
+function TestImageOrig {
     param (
         $ImageName
     )
@@ -162,45 +198,64 @@ if($target -eq "test") {
         # foreach($image in $builds.Keys) {
         #     Test-Image $image
         # }
-        $processorCount = [Environment]::ProcessorCount
-        $processorMultiple = 2
-        # $builds.Keys | ForEach-Object -Parallel {
-        #     Test-Image @_
-        # } -ThrottleLimit ($processorCount * $processorMultiple)
 
-        # TODO
-        Write-Host "Starting parallel run" -ForegroundColor Blue
+        # # TODO
+        Write-Host "Starting parallel run"
         $throttleLimit = 10
-        $funcDef = $function:TestImage.ToString()
-        $threadSafeDictionary = [System.Collections.Concurrent.ConcurrentDictionary[string,object]]::new()
-        
+
         $start = Get-Date
-        $urls| ForEach-Object -Parallel -ThrottleLimit $throttleLimit   {
-            $function:TestImage = $using:funcDef
-            $res = TestImage -ImageName $_
-            $dict = $using:threadSafeDictionary
-            $outObject = new-object PSObject -property @{ errors = $res.errors }
-            $dict.TryAdd($res.ImageName, $outObject) | Out-Null
-        
-        } 
+        $builds.Keys | ForEach-Object -Parallel -ThrottleLimit $throttleLimit -ArgumentList $scriptBlock, $threadSafeDictionary {
+            Invoke-Command -ScriptBlock $using:scriptBlock -ArgumentList $_
+        }
         $end = Get-Date
         $timespan = $end - $start
         
         $threadSafeDictionary.Count
-        foreach($key in $threadSafeDictionary.Keys)
-        {
+        foreach ($key in $threadSafeDictionary.Keys) {
             $returnObject = $threadSafeDictionary[$key]
-            if($returnObject.errors -and $returnObject.errors.Count -gt 0)
-            {
+            if ($returnObject.errors -and $returnObject.errors.Count -gt 0) {
                 $testFailed = $true
                 Write-Host "~ $key failed with codes $($returnObject.errors)"
-            }
-            else
-            {
-                Write-Host "~ $key contains $($returnObject.passedCount) passed tests"
+            } else {
+                Write-Host "~ $key passed tests"
             }
         }
         Write-Host "~ Total ${imageType} tests time: $timespan"
+
+
+        # $funcDef = $function:TestImage.ToString()
+        # $threadSafeDictionary = [System.Collections.Concurrent.ConcurrentDictionary[string,object]]::new()
+        
+        # $start = Get-Date
+        # # TODO: test again with $builds.Keys?
+        # $builds.Keys| ForEach-Object -Parallel -ThrottleLimit $throttleLimit   {
+        #     $function:TestImage = $using:funcDef
+        #     $res = TestImage -ImageName $_
+        #     $dict = $using:threadSafeDictionary
+        #     $outObject = new-object PSObject -property @{ errors = $res.errors }
+        #     $dict.TryAdd($res.ImageName, $outObject) | Out-Null
+        
+        # } 
+        # $end = Get-Date
+        # $timespan = $end - $start
+        
+        # $threadSafeDictionary.Count
+        # foreach($key in $threadSafeDictionary.Keys)
+        # {
+        #     $returnObject = $threadSafeDictionary[$key]
+        #     if($returnObject.errors -and $returnObject.errors.Count -gt 0)
+        #     {
+        #         $testFailed = $true
+        #         Write-Host "~ $key failed with codes $($returnObject.errors)"
+        #     }
+        #     else
+        #     {
+        #         Write-Host "~ $key contains $($returnObject.passedCount) passed tests"
+        #     }
+        # }
+        # Write-Host "~ Total ${imageType} tests time: $timespan"
+
+
 
         # Fail if any test failures
         if($testFailed -ne $false) {
