@@ -56,7 +56,7 @@ Describe "[runtime/$global:TEST_TAG] test jenkins arguments" {
   }
 }
 
-Describe "[$global:TEST_TAG] passing JVM parameters" {
+Describe "[runtime/$global:TEST_TAG] passing JVM parameters" {
   BeforeAll {
     $tzSetting = '-Duser.timezone=Europe/Madrid'
     $tzRegex = [regex]::Escape("Europe/Madrid")
