@@ -98,6 +98,9 @@ function TestImage {
     param (
         $ImageName
     )
+    $failedCount = 0
+    $passedCount = 0
+    $errors = @()
 
     Write-Host "= TEST: Testing image ${ImageName}:"
 
@@ -111,13 +114,19 @@ function TestImage {
 
     $TestResults = Invoke-Pester -Configuration $configuration
     if ($TestResults.FailedCount -gt 0) {
-        Write-Host "There were $($TestResults.FailedCount) failed tests in $ImageName"
-        $testFailed = $true
+        $errorMessage = "There were $($TestResults.FailedCount) failed tests in $ImageName"
+        Write-Host "== TestImage ${ImageName}: $errorMessage"
+        $failedCount = $TestResults.FailedCount
+        $errors+= $errorMessage
     } else {
         Write-Host "There were $($TestResults.PassedCount) passed tests out of $($TestResults.TotalCount) in $ImageName"
+        $passedCount = $TestResults.PassedCount
     }
     Remove-Item env:\CONTROLLER_IMAGE
     Remove-Item env:\DOCKERFILE
+
+    $outputobj = new-object PSObject -property @{"ImageName" = $ImageName; "FailedCount" = $failedCount; "PassedCount" = $passedCount ; "errors" = $errors}
+    return $outputobj
 }
 
 if($target -eq "test") {
@@ -170,8 +179,8 @@ if($target -eq "test") {
             $function:TestImage = $using:funcDef
             $res = TestImage -ImageName $_
             $dict = $using:threadSafeDictionary
-            $outObject = new-object PSObject -property @{"FileCount" = $res.filecount; "Reruncount" = $res.reruncount; errors = $res.errors }
-            $dict.TryAdd($res.SiteUrl, $outObject) | Out-Null
+            $outObject = new-object PSObject -property @{ errors = $res.errors }
+            $dict.TryAdd($res.ImageName, $outObject) | Out-Null
         
         } 
         $end = Get-Date
@@ -184,14 +193,14 @@ if($target -eq "test") {
             if($returnObject.errors -and $returnObject.errors.Count -gt 0)
             {
                 $testFailed = $true
-                Write-Host "$key failed with codes $($returnObject.errors)"
+                Write-Host "~ $key failed with codes $($returnObject.errors)"
             }
             else
             {
-                Write-Host "$key contains $($returnObject.FileCount) items, reruns = $($returnObject.Reruncount)"
+                Write-Host "~ $key contains $($returnObject.passedCount) passed tests"
             }
         }
-        Write-Host "Total ${imageType} tests time: $timespan"
+        Write-Host "~ Total ${imageType} tests time: $timespan"
 
         # Fail if any test failures
         if($testFailed -ne $false) {
