@@ -201,6 +201,10 @@ if($target -eq "test") {
 
         # # TODO
         Write-Host "Starting parallel run"
+        
+        # Check Powershell version, Parallel is available since version 7
+        $PSVersionTable.PSVersion
+
         $throttleLimit = 10
 
         $start = Get-Date
