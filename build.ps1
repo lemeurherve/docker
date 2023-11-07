@@ -94,7 +94,7 @@ if($lastExitCode -ne 0 -and !$DryRun) {
     exit $lastExitCode
 }
 
-function Test-Image {
+function TestImage {
     param (
         $ImageName
     )
@@ -155,9 +155,44 @@ if($target -eq "test") {
         # }
         $processorCount = [Environment]::ProcessorCount
         $processorMultiple = 2
-        $builds.Keys | ForEach-Object -Parallel {
-            Test-Image @_
-        } -ThrottleLimit ($processorCount * $processorMultiple)
+        # $builds.Keys | ForEach-Object -Parallel {
+        #     Test-Image @_
+        # } -ThrottleLimit ($processorCount * $processorMultiple)
+
+        # TODO
+        Write-Host "Starting parallel run" -ForegroundColor Blue
+        $throttleLimit = 10
+        $funcDef = $function:TestImage.ToString()
+        $threadSafeDictionary = [System.Collections.Concurrent.ConcurrentDictionary[string,object]]::new()
+        
+        $start = Get-Date
+        $urls| ForEach-Object -Parallel -ThrottleLimit $throttleLimit   {
+            $function:TestImage = $using:funcDef
+            $res = TestImage -ImageName $_
+            $dict = $using:threadSafeDictionary
+            $outObject = new-object PSObject -property @{"FileCount" = $res.filecount; "Reruncount" = $res.reruncount; errors = $res.errors }
+            $dict.TryAdd($res.SiteUrl, $outObject) | Out-Null
+        
+        } 
+        $end = Get-Date
+        $timespan = $end - $start
+        
+        $threadSafeDictionary.Count
+        foreach($key in $threadSafeDictionary.Keys)
+        {
+            $returnObject = $threadSafeDictionary[$key]
+            if($returnObject.errors -and $returnObject.errors.Count -gt 0)
+            {
+                $testFailed = $true
+                Write-Host "$key failed with codes $($returnObject.errors)"
+            }
+            else
+            {
+                Write-Host "$key contains $($returnObject.FileCount) items, reruns = $($returnObject.Reruncount)"
+            }
+        }
+        Write-Host "Total ${imageType} tests time: $timespan"
+
         # Fail if any test failures
         if($testFailed -ne $false) {
             Write-Error "Test stage failed!"
