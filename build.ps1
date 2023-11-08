@@ -9,9 +9,6 @@ Param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue' # Disable Progress bar for faster downloads
 
-# Check Powershell version, Parallel is available since version 7
-$PSVersionTable.PSVersion
-
 $Repository = 'jenkins'
 $Organization = 'jenkins4eval'
 $ImageType = 'windowsservercore-ltsc2019' # <WINDOWS_FLAVOR>-<WINDOWS_VERSION>
@@ -97,49 +94,10 @@ if($lastExitCode -ne 0 -and !$DryRun) {
     exit $lastExitCode
 }
 
-$scriptBlock = {
-    function TestImage {
-        param (
-            $ImageName
-        )
-        $errors = @()
-    
-        Write-Host "= TEST: Testing image ${ImageName}:"
-    
-        $env:CONTROLLER_IMAGE = $ImageName
-        $env:DOCKERFILE = 'windows/{0}/hotspot/Dockerfile' -f $env:WINDOWS_FLAVOR
-        if (Test-Path ".\target\$ImageName") {
-            Remove-Item -Recurse -Force ".\target\$ImageName"
-        }
-        New-Item -Path ".\target\$ImageName" -Type Directory | Out-Null
-        $configuration.TestResult.OutputPath = ".\target\$ImageName\junit-results.xml"
-    
-        $TestResults = Invoke-Pester -Configuration $configuration
-        if ($TestResults.FailedCount -gt 0) {
-            $errorMessage = "There were $($TestResults.FailedCount) failed tests in $ImageName"
-            Write-Host "== TestImage ${ImageName}: $errorMessage"
-            $errors+= $errorMessage
-        } else {
-            Write-Host "There were $($TestResults.PassedCount) passed tests out of $($TestResults.TotalCount) in $ImageName"
-        }
-        Remove-Item env:\CONTROLLER_IMAGE
-        Remove-Item env:\DOCKERFILE
-    }
-
-    $function:TestImage = [scriptblock]::Create($using:funcDef)
-    $res = TestImage -ImageName $_
-    $dict = $using:threadSafeDictionary
-    $outObject = New-Object PSObject -Property @{ errors = $res.errors }
-    $dict.TryAdd($res.ImageName, $outObject) | Out-Null
-}
-
-function TestImageOrig {
+function Test-Image {
     param (
         $ImageName
     )
-    $failedCount = 0
-    $passedCount = 0
-    $errors = @()
 
     Write-Host "= TEST: Testing image ${ImageName}:"
 
@@ -153,19 +111,13 @@ function TestImageOrig {
 
     $TestResults = Invoke-Pester -Configuration $configuration
     if ($TestResults.FailedCount -gt 0) {
-        $errorMessage = "There were $($TestResults.FailedCount) failed tests in $ImageName"
-        Write-Host "== TestImage ${ImageName}: $errorMessage"
-        $failedCount = $TestResults.FailedCount
-        $errors+= $errorMessage
+        Write-Host "There were $($TestResults.FailedCount) failed tests in $ImageName"
+        $testFailed = $true
     } else {
         Write-Host "There were $($TestResults.PassedCount) passed tests out of $($TestResults.TotalCount) in $ImageName"
-        $passedCount = $TestResults.PassedCount
     }
     Remove-Item env:\CONTROLLER_IMAGE
     Remove-Item env:\DOCKERFILE
-
-    $outputobj = new-object PSObject -property @{"ImageName" = $ImageName; "FailedCount" = $failedCount; "PassedCount" = $passedCount ; "errors" = $errors}
-    return $outputobj
 }
 
 if($target -eq "test") {
@@ -174,83 +126,21 @@ if($target -eq "test") {
     } else {
         # Only fail the run afterwards in case of any test failures
         $testFailed = $false
-        Get-InstalledModule
-        $mod = Get-InstalledModule -Name Pester -MinimumVersion 5.3.0 -MaximumVersion 5.3.3 -ErrorAction Continue
+        $mod = Get-InstalledModule -Name Pester -MinimumVersion 5.3.0 -MaximumVersion 5.3.3 -ErrorAction SilentlyContinue
         if($null -eq $mod) {
-            Write-Host "-- no pester module"
-            # TODO: fix and check if this path depends on powershell version
             $module = "c:\Program Files\WindowsPowerShell\Modules\Pester"
             if(Test-Path $module) {
-                Write-Host "-- no pester path $module"
-                Write-Host "-- takeown"
                 takeown /F $module /A /R
-                Write-Host "-- icacls /reset"
                 icacls $module /reset
-                Write-Host "-- icacls /grant"
                 icacls $module /grant Administrators:'F' /inheritance:d /T
-                Write-Host "-- rm rf"
                 Remove-Item -Path $module -Recurse -Force -Confirm:$false
             }
-            Write-Host "-- Install-Module -Force -Name Pester -MaximumVersion 5.3.3"
-            Install-Module -Force -Name Pester -Verbose -MaximumVersion 5.3.3
+            Install-Module -Force -Name Pester -MaximumVersion 5.3.3
         }
-        # Get-InstalledModule
-        # dir "C:\Program Files\WindowsPowerShell\Modules"
-        # $env:PSModulePath -split ";"
-        # Write-Host "PSModuleAutoloadingPreference: $PSModuleAutoloadingPreference"
-        # # TODO: remove this install
-        # Install-Module -Force -Name Pester -SkipPublisherCheck -MaximumVersion 5.3.3
-        # Get-InstalledModule
-        # Write-Host "C:\Program Files\WindowsPowerShell\Modules"
-        # dir "C:\Program Files\WindowsPowerShell\Modules"
-        # # dir "C:\Program Files\WindowsPowerShell\Modules\Pester"
-        # Write-Host "C:\Program Files\PowerShell\Modules"
-        # dir "C:\Program Files\PowerShell\Modules"
-        # Write-Host "c:\program files\powershell\7\Modules"
-        # dir "c:\program files\powershell\7\Modules"
-        # Write-Host "C:\Program Files\WindowsPowerShell\Modules"
-        # dir "C:\Program Files\WindowsPowerShell\Modules"
-        # Write-Host "C:\Windows\system32\WindowsPowerShell\v1.0\Modules"
-        # dir "C:\Windows\system32\WindowsPowerShell\v1.0\Modules"
-        # Import-Module Pester -PassThru
-        Write-Host "Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize"
-        Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize
-        Write-Host "Get-InstalledModule | Format-Table -Property Name, ModuleType, Path -AutoSize"
-        Get-InstalledModule | Format-Table -Property Name, ModuleType, Path -AutoSize
-        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue"
-        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue
-        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize"
-        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize
-        
-        Write-Host "Update-Module Pester -RequiredVersion 5.3.3 -Force -Verbose"
-        Update-Module Pester -RequiredVersion 5.3.3 -Force -Verbose
-        
-        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue"
-        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue
-        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize"
-        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize
 
-
-        Write-Host "----- Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'}"
-        Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'}
-        Write-Host "----- Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'} | Import-Module -Verbose -ErrorAction Continue"
-        Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'} | Import-Module -Verbose -ErrorAction Continue
-        Write-Host "----- Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize"
-        Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize
-        
-        
-        Write-Host "Import-Module -Name 'C:\Windows\system32\config\systemprofile\Documents\PowerShell\Modules\Pester\5.3.3' -Verbose -ErrorAction Continue"
-        Import-Module -Name 'C:\Windows\system32\config\systemprofile\Documents\PowerShell\Modules\Pester\5.3.3' -Verbose -ErrorAction Continue
-
-        Write-Host "Import-Module -Name 'C:\Windows\system32\config\systemprofile\Documents\PowerShell\Modules\Pester\5.3.3' -Verbose -ErrorAction Continue"
-        Import-Module Pester -Verbose -ErrorAction Continue
-
-        Write-Host "-- Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize"
-        Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize
-        
+        Import-Module Pester
         Write-Host "= TEST: Setting up Pester environment..."
         $configuration = [PesterConfiguration]::Default
-        # $configuration = New-PesterConfiguration
         $configuration.Run.PassThru = $true
         $configuration.Run.Path = '.\tests'
         $configuration.Run.Exit = $true
@@ -259,72 +149,10 @@ if($target -eq "test") {
         $configuration.Output.Verbosity = 'Diagnostic'
         $configuration.CodeCoverage.Enabled = $false
 
-        Write-Host "= TEST: configuration"
-        $configuration
-
         Write-Host "= TEST: Testing all images..."
-        # foreach($image in $builds.Keys) {
-        #     Test-Image $image
-        # }
-
-        # # TODO
-        Write-Host "Starting parallel run"
-        
-        $throttleLimit = 10
-
-        $start = Get-Date
-        $builds.Keys | ForEach-Object -Parallel -ThrottleLimit $throttleLimit -ArgumentList $scriptBlock, $threadSafeDictionary {
-            Invoke-Command -ScriptBlock $using:scriptBlock -ArgumentList $_
+        foreach($image in $builds.Keys) {
+            Test-Image $image
         }
-        $end = Get-Date
-        $timespan = $end - $start
-        
-        $threadSafeDictionary.Count
-        foreach ($key in $threadSafeDictionary.Keys) {
-            $returnObject = $threadSafeDictionary[$key]
-            if ($returnObject.errors -and $returnObject.errors.Count -gt 0) {
-                $testFailed = $true
-                Write-Host "~ $key failed with codes $($returnObject.errors)"
-            } else {
-                Write-Host "~ $key passed tests"
-            }
-        }
-        Write-Host "~ Total ${imageType} tests time: $timespan"
-
-
-        # $funcDef = $function:TestImage.ToString()
-        # $threadSafeDictionary = [System.Collections.Concurrent.ConcurrentDictionary[string,object]]::new()
-        
-        # $start = Get-Date
-        # # TODO: test again with $builds.Keys?
-        # $builds.Keys| ForEach-Object -Parallel -ThrottleLimit $throttleLimit   {
-        #     $function:TestImage = $using:funcDef
-        #     $res = TestImage -ImageName $_
-        #     $dict = $using:threadSafeDictionary
-        #     $outObject = new-object PSObject -property @{ errors = $res.errors }
-        #     $dict.TryAdd($res.ImageName, $outObject) | Out-Null
-        
-        # } 
-        # $end = Get-Date
-        # $timespan = $end - $start
-        
-        # $threadSafeDictionary.Count
-        # foreach($key in $threadSafeDictionary.Keys)
-        # {
-        #     $returnObject = $threadSafeDictionary[$key]
-        #     if($returnObject.errors -and $returnObject.errors.Count -gt 0)
-        #     {
-        #         $testFailed = $true
-        #         Write-Host "~ $key failed with codes $($returnObject.errors)"
-        #     }
-        #     else
-        #     {
-        #         Write-Host "~ $key contains $($returnObject.passedCount) passed tests"
-        #     }
-        # }
-        # Write-Host "~ Total ${imageType} tests time: $timespan"
-
-
 
         # Fail if any test failures
         if($testFailed -ne $false) {
