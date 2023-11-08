@@ -1,6 +1,6 @@
 services:
   jdk11:
-    image: jdk11-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}
+    image: ${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:jdk11-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}
     build:
       context: ./
       dockerfile: ./windows/${WINDOWS_FLAVOR}/hotspot/Dockerfile
@@ -10,8 +10,10 @@ services:
         JENKINS_SHA: ${JENKINS_SHA}
         COMMIT_SHA: ${COMMIT_SHA}
         TOOLS_WINDOWS_VERSION: ${TOOLS_WINDOWS_VERSION}
+      tags:
+        - "${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:${JENKINS_VERSION}-jdk11-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}"
   jdk17:
-    image: jdk17-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}
+    image: ${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:jdk17-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}
     build:
       context: ./
       dockerfile: ./windows/${WINDOWS_FLAVOR}/hotspot/Dockerfile
@@ -21,3 +23,7 @@ services:
         JENKINS_SHA: ${JENKINS_SHA}
         COMMIT_SHA: ${COMMIT_SHA}
         TOOLS_WINDOWS_VERSION: ${TOOLS_WINDOWS_VERSION}
+      tags:
+        - "${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:${JENKINS_VERSION}-jdk17-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}"
+        - "${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:${JENKINS_VERSION}-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}"
+        - "${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:${WINDOWS_FLAVOR}-${WINDOWS_VERSION}"
