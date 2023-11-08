@@ -135,10 +135,10 @@ if($target -eq "test") {
                 icacls $module /grant Administrators:'F' /inheritance:d /T
                 Remove-Item -Path $module -Recurse -Force -Confirm:$false
             }
-            Install-Module -Force -Name Pester -MaximumVersion 5.3.3
+            Install-Module -Force -Name Pester -Verbose -MaximumVersion 5.3.3
         }
 
-        Import-Module Pester
+        Import-Module -Verbose Pester
         Write-Host "= TEST: Setting up Pester environment..."
         $configuration = [PesterConfiguration]::Default
         $configuration.Run.PassThru = $true
