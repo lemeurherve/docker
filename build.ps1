@@ -9,6 +9,9 @@ Param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue' # Disable Progress bar for faster downloads
 
+# Check Powershell version, Parallel is available since version 7
+$PSVersionTable.PSVersion
+
 $Repository = 'jenkins'
 $Organization = 'jenkins4eval'
 $ImageType = 'windowsservercore-ltsc2019' # <WINDOWS_FLAVOR>-<WINDOWS_VERSION>
@@ -171,22 +174,83 @@ if($target -eq "test") {
     } else {
         # Only fail the run afterwards in case of any test failures
         $testFailed = $false
-        $mod = Get-InstalledModule -Name Pester -MinimumVersion 5.3.0 -MaximumVersion 5.3.3 -ErrorAction SilentlyContinue
+        Get-InstalledModule
+        $mod = Get-InstalledModule -Name Pester -MinimumVersion 5.3.0 -MaximumVersion 5.3.3 -ErrorAction Continue
         if($null -eq $mod) {
+            Write-Host "-- no pester module"
+            # TODO: fix and check if this path depends on powershell version
             $module = "c:\Program Files\WindowsPowerShell\Modules\Pester"
             if(Test-Path $module) {
+                Write-Host "-- no pester path $module"
+                Write-Host "-- takeown"
                 takeown /F $module /A /R
+                Write-Host "-- icacls /reset"
                 icacls $module /reset
+                Write-Host "-- icacls /grant"
                 icacls $module /grant Administrators:'F' /inheritance:d /T
+                Write-Host "-- rm rf"
                 Remove-Item -Path $module -Recurse -Force -Confirm:$false
             }
-            Install-Module -Force -Name Pester -MaximumVersion 5.3.3
+            Write-Host "-- Install-Module -Force -Name Pester -MaximumVersion 5.3.3"
+            Install-Module -Force -Name Pester -Verbose -MaximumVersion 5.3.3
         }
-        # TODO: remove this install
-        Install-Module -Force -Name Pester -MaximumVersion 5.3.3
-        Import-Module Pester
+        # Get-InstalledModule
+        # dir "C:\Program Files\WindowsPowerShell\Modules"
+        # $env:PSModulePath -split ";"
+        # Write-Host "PSModuleAutoloadingPreference: $PSModuleAutoloadingPreference"
+        # # TODO: remove this install
+        # Install-Module -Force -Name Pester -SkipPublisherCheck -MaximumVersion 5.3.3
+        # Get-InstalledModule
+        # Write-Host "C:\Program Files\WindowsPowerShell\Modules"
+        # dir "C:\Program Files\WindowsPowerShell\Modules"
+        # # dir "C:\Program Files\WindowsPowerShell\Modules\Pester"
+        # Write-Host "C:\Program Files\PowerShell\Modules"
+        # dir "C:\Program Files\PowerShell\Modules"
+        # Write-Host "c:\program files\powershell\7\Modules"
+        # dir "c:\program files\powershell\7\Modules"
+        # Write-Host "C:\Program Files\WindowsPowerShell\Modules"
+        # dir "C:\Program Files\WindowsPowerShell\Modules"
+        # Write-Host "C:\Windows\system32\WindowsPowerShell\v1.0\Modules"
+        # dir "C:\Windows\system32\WindowsPowerShell\v1.0\Modules"
+        # Import-Module Pester -PassThru
+        Write-Host "Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize"
+        Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize
+        Write-Host "Get-InstalledModule | Format-Table -Property Name, ModuleType, Path -AutoSize"
+        Get-InstalledModule | Format-Table -Property Name, ModuleType, Path -AutoSize
+        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue"
+        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue
+        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize"
+        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize
+        
+        Write-Host "Update-Module Pester -RequiredVersion 5.3.3 -Force -Verbose"
+        Update-Module Pester -RequiredVersion 5.3.3 -Force -Verbose
+        
+        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue"
+        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue
+        Write-Host "Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize"
+        Get-InstalledModule -Name Pester -ErrorAction SilentlyContinue  | Format-Table -Property Name, ModuleType, Path -AutoSize
+
+
+        Write-Host "----- Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'}"
+        Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'}
+        Write-Host "----- Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'} | Import-Module -Verbose -ErrorAction Continue"
+        Get-Module -ListAvailable | Where-Object {$_.Name -like '*Pester*'} | Import-Module -Verbose -ErrorAction Continue
+        Write-Host "----- Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize"
+        Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize
+        
+        
+        Write-Host "Import-Module -Name 'C:\Windows\system32\config\systemprofile\Documents\PowerShell\Modules\Pester\5.3.3' -Verbose -ErrorAction Continue"
+        Import-Module -Name 'C:\Windows\system32\config\systemprofile\Documents\PowerShell\Modules\Pester\5.3.3' -Verbose -ErrorAction Continue
+
+        Write-Host "Import-Module -Name 'C:\Windows\system32\config\systemprofile\Documents\PowerShell\Modules\Pester\5.3.3' -Verbose -ErrorAction Continue"
+        Import-Module Pester -Verbose -ErrorAction Continue
+
+        Write-Host "-- Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize"
+        Get-Module -List | Format-Table -Property Name, ModuleType, Path -AutoSize
+        
         Write-Host "= TEST: Setting up Pester environment..."
         $configuration = [PesterConfiguration]::Default
+        # $configuration = New-PesterConfiguration
         $configuration.Run.PassThru = $true
         $configuration.Run.Path = '.\tests'
         $configuration.Run.Exit = $true
@@ -194,6 +258,9 @@ if($target -eq "test") {
         $configuration.TestResult.OutputFormat = 'JUnitXml'
         $configuration.Output.Verbosity = 'Diagnostic'
         $configuration.CodeCoverage.Enabled = $false
+
+        Write-Host "= TEST: configuration"
+        $configuration
 
         Write-Host "= TEST: Testing all images..."
         # foreach($image in $builds.Keys) {
@@ -203,9 +270,6 @@ if($target -eq "test") {
         # # TODO
         Write-Host "Starting parallel run"
         
-        # Check Powershell version, Parallel is available since version 7
-        $PSVersionTable.PSVersion
-
         $throttleLimit = 10
 
         $start = Get-Date
