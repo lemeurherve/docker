@@ -182,7 +182,8 @@ if($target -eq "test") {
             }
             Install-Module -Force -Name Pester -MaximumVersion 5.3.3
         }
-
+        # TODO: remove this install
+        Install-Module -Force -Name Pester -MaximumVersion 5.3.3
         Import-Module Pester
         Write-Host "= TEST: Setting up Pester environment..."
         $configuration = [PesterConfiguration]::Default
