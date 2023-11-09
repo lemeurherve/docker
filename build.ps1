@@ -32,9 +32,11 @@ if(![String]::IsNullOrWhiteSpace($env:IMAGE_TYPE)) {
 # this is the jdk version that will be used for the 'bare tag' images, e.g., jdk17-hotspot-windowsservercore-ltsc2019 -> windowsservercore-ltsc2019
 $defaultJdk = '17'
 $builds = @{}
-$env:JENKINS_VERSION = "$JenkinsVersion"
 $env:DOCKERHUB_ORGANISATION = "$Organisation"
 $env:DOCKERHUB_REPO = "$Repository"
+$env:JENKINS_VERSION = "$JenkinsVersion"
+Write-Host "= PREPARE: env:DOCKERHUB_ORGANISATION = $env:DOCKERHUB_ORGANISATION"
+Write-Host "= PREPARE: env:DOCKERHUB_REPO = $env:DOCKERHUB_REPO"
 Write-Host "= PREPARE: env:JENKINS_VERSION = $env:JENKINS_VERSION"
 
 $items = $ImageType.Split("-")
