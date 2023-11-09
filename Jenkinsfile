@@ -76,109 +76,109 @@ stage('Build') {
         }
     }
 
-    // if (!infra.isTrusted()) {
-    //     def images = [
-    //             'almalinux_jdk11',
-    //             'alpine_jdk11',
-    //             'alpine_jdk17',
-    //             'alpine_jdk21',
-    //             'centos7_jdk11',
-    //             'debian_jdk11',
-    //             'debian_jdk17',
-    //             'debian_jdk21',
-    //             'debian_jdk21_preview',
-    //             'debian_slim_jdk11',
-    //             'debian_slim_jdk17',
-    //             'debian_slim_jdk21',
-    //             'debian_slim_jdk21_preview',
-    //             'rhel_ubi8_jdk11',
-    //             'rhel_ubi9_jdk17',
-    //             'rhel_ubi9_jdk21',
-    //     ]
-    //     for (i in images) {
-    //         def imageToBuild = i
+    if (!infra.isTrusted()) {
+        def images = [
+                'almalinux_jdk11',
+                'alpine_jdk11',
+                'alpine_jdk17',
+                'alpine_jdk21',
+                'centos7_jdk11',
+                'debian_jdk11',
+                'debian_jdk17',
+                'debian_jdk21',
+                'debian_jdk21_preview',
+                'debian_slim_jdk11',
+                'debian_slim_jdk17',
+                'debian_slim_jdk21',
+                'debian_slim_jdk21_preview',
+                'rhel_ubi8_jdk11',
+                'rhel_ubi9_jdk17',
+                'rhel_ubi9_jdk21',
+        ]
+        for (i in images) {
+            def imageToBuild = i
 
-    //         builds[imageToBuild] = {
-    //             nodeWithTimeout('docker') {
-    //                 deleteDir()
+            builds[imageToBuild] = {
+                nodeWithTimeout('docker') {
+                    deleteDir()
 
-    //                 stage('Checkout') {
-    //                     checkout scm
-    //                 }
+                    stage('Checkout') {
+                        checkout scm
+                    }
 
-    //                 stage('Static analysis') {
-    //                     sh 'make hadolint shellcheck'
-    //                 }
+                    stage('Static analysis') {
+                        sh 'make hadolint shellcheck'
+                    }
 
-    //                 /* Outside of the trusted.ci environment, we're building and testing
-    //                 * the Dockerfile in this repository, but not publishing to docker hub
-    //                 */
-    //                 stage("Build linux-${imageToBuild}") {
-    //                     infra.withDockerCredentials {
-    //                         sh "make build-${imageToBuild}"
-    //                     }
-    //                 }
+                    /* Outside of the trusted.ci environment, we're building and testing
+                    * the Dockerfile in this repository, but not publishing to docker hub
+                    */
+                    stage("Build linux-${imageToBuild}") {
+                        infra.withDockerCredentials {
+                            sh "make build-${imageToBuild}"
+                        }
+                    }
 
-    //                 stage("Test linux-${imageToBuild}") {
-    //                     sh "make prepare-test"
-    //                     try {
-    //                         infra.withDockerCredentials {
-    //                             sh "make test-${imageToBuild}"
-    //                         }
-    //                     } catch (err) {
-    //                         error("${err.toString()}")
-    //                     } finally {
-    //                         junit(allowEmptyResults: true, keepLongStdio: true, testResults: 'target/*.xml')
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     builds['multiarch-build'] = {
-    //         nodeWithTimeout('docker') {
-    //             stage('Checkout') {
-    //                 deleteDir()
-    //                 checkout scm
-    //             }
+                    stage("Test linux-${imageToBuild}") {
+                        sh "make prepare-test"
+                        try {
+                            infra.withDockerCredentials {
+                                sh "make test-${imageToBuild}"
+                            }
+                        } catch (err) {
+                            error("${err.toString()}")
+                        } finally {
+                            junit(allowEmptyResults: true, keepLongStdio: true, testResults: 'target/*.xml')
+                        }
+                    }
+                }
+            }
+        }
+        builds['multiarch-build'] = {
+            nodeWithTimeout('docker') {
+                stage('Checkout') {
+                    deleteDir()
+                    checkout scm
+                }
 
-    //             // sanity check that proves all images build on declared platforms
-    //             stage('Multi arch build') {
-    //                 infra.withDockerCredentials {
-    //                     sh '''
-    //                         docker buildx create --use
-    //                         docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    //                         docker buildx bake --file docker-bake.hcl linux
-    //                     '''
-    //                 }
-    //             }
-    //         }
-    //     }
-    // } else {
-    //     // Only publish when a tag triggered the build
-    //     if (env.TAG_NAME) {
-    //         // Split to ensure any suffix is not taken in account (but allow suffix tags to trigger rebuilds)
-    //         jenkins_version = env.TAG_NAME.split('-')[0]
-    //         builds['linux'] = {
-    //             withEnv(["JENKINS_VERSION=${jenkins_version}"]) {
-    //                 nodeWithTimeout('docker') {
-    //                     stage('Checkout') {
-    //                         checkout scm
-    //                     }
+                // sanity check that proves all images build on declared platforms
+                stage('Multi arch build') {
+                    infra.withDockerCredentials {
+                        sh '''
+                            docker buildx create --use
+                            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+                            docker buildx bake --file docker-bake.hcl linux
+                        '''
+                    }
+                }
+            }
+        }
+    } else {
+        // Only publish when a tag triggered the build
+        if (env.TAG_NAME) {
+            // Split to ensure any suffix is not taken in account (but allow suffix tags to trigger rebuilds)
+            jenkins_version = env.TAG_NAME.split('-')[0]
+            builds['linux'] = {
+                withEnv(["JENKINS_VERSION=${jenkins_version}"]) {
+                    nodeWithTimeout('docker') {
+                        stage('Checkout') {
+                            checkout scm
+                        }
 
-    //                     stage('Publish') {
-    //                         infra.withDockerCredentials {
-    //                             sh '''
-    //                                 docker buildx create --use
-    //                                 docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-    //                                 make publish
-    //                                 '''
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
+                        stage('Publish') {
+                            infra.withDockerCredentials {
+                                sh '''
+                                    docker buildx create --use
+                                    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+                                    make publish
+                                    '''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     parallel builds
 }
