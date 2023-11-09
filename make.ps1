@@ -159,28 +159,17 @@ if($target -eq "test") {
     }
 }
 
-function Publish-Image {
-    param (
-        [String] $Build,
-        [String] $ImageName
-    )
-    if ($DryRun) {
-        Write-Host "= PUBLISH: (dry-run) docker tag then publish '$Build $ImageName'"
-    } else {
-        Write-Host "= PUBLISH: Tagging $Build => full name = $ImageName"
-        docker tag "$Build" "$ImageName"
-
-        Write-Host "= PUBLISH: Publishing $ImageName..."
-        docker push "$ImageName"
-    }
-}
-
 if($target -eq "publish") {
     # Only fail the run afterwards in case of any issues when publishing the docker images
     $publishFailed = 0
     foreach($b in $builds.Keys) {
         foreach($tag in $Builds[$b]['Tags']) {
-            Publish-Image "$b" "${Organisation}/${Repository}:${tag}"
+            Write-Host "Publishing $b => tag=$tag"
+            $cmd = "docker push {0}/{1}:{2}" -f $Organization, $Repository, $tag
+            switch ($DryRun) {
+                $true { Write-Host "(dry-run) $cmd" }
+                $false { Invoke-Expression $cmd}
+            }
             if($lastExitCode -ne 0) {
                 $publishFailed = 1
             }
