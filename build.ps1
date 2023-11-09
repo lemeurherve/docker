@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue' # Disable Progress bar for faster downloads
 
 $Repository = 'jenkins'
-$Organization = 'jenkins4eval'
+$Organisation = 'jenkins4eval'
 $ImageType = 'windowsservercore-ltsc2019' # <WINDOWS_FLAVOR>-<WINDOWS_VERSION>
 
 if(![String]::IsNullOrWhiteSpace($env:DOCKERHUB_REPO)) {
@@ -18,7 +18,7 @@ if(![String]::IsNullOrWhiteSpace($env:DOCKERHUB_REPO)) {
 }
 
 if(![String]::IsNullOrWhiteSpace($env:DOCKERHUB_ORGANISATION)) {
-    $Organization = $env:DOCKERHUB_ORGANISATION
+    $Organisation = $env:DOCKERHUB_ORGANISATION
 }
 
 if(![String]::IsNullOrWhiteSpace($env:JENKINS_VERSION)) {
@@ -33,6 +33,8 @@ if(![String]::IsNullOrWhiteSpace($env:IMAGE_TYPE)) {
 $defaultJdk = '17'
 $builds = @{}
 $env:JENKINS_VERSION = "$JenkinsVersion"
+$env:DOCKERHUB_ORGANISATION = "$Organisation"
+$env:DOCKERHUB_REPO = "$Repository"
 Write-Host "= PREPARE: env:JENKINS_VERSION = $env:JENKINS_VERSION"
 
 $items = $ImageType.Split("-")
@@ -80,7 +82,7 @@ Invoke-Expression "$baseDockerCmd config --services" 2>$null | ForEach-Object {
     }
 }
 
-Write-Host "= PREPARE: List of $Organization/$Repository images and tags to be processed:"
+Write-Host "= PREPARE: List of $Organisation/$Repository images and tags to be processed:"
 ConvertTo-Json $builds
 
 Write-Host "= BUILD: Building all images..."
@@ -185,7 +187,7 @@ if($target -eq "publish") {
     $publishFailed = 0
     foreach($b in $builds.Keys) {
         foreach($tag in $Builds[$b]['Tags']) {
-            Publish-Image "$b" "${Organization}/${Repository}:${tag}"
+            Publish-Image "$b" "${Organisation}/${Repository}:${tag}"
             if($lastExitCode -ne 0) {
                 $publishFailed = 1
             }

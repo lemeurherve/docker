@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue' # Disable Progress bar for faster downloads
 
 $Repository = 'jenkins'
-$Organization = 'jenkins4eval'
+$Organisation = 'jenkins4eval'
 $ImageType = 'windowsservercore-ltsc2019' # <WINDOWS_FLAVOR>-<WINDOWS_VERSION>
 
 if(![String]::IsNullOrWhiteSpace($env:DOCKERHUB_REPO)) {
@@ -18,7 +18,7 @@ if(![String]::IsNullOrWhiteSpace($env:DOCKERHUB_REPO)) {
 }
 
 if(![String]::IsNullOrWhiteSpace($env:DOCKERHUB_ORGANISATION)) {
-    $Organization = $env:DOCKERHUB_ORGANISATION
+    $Organisation = $env:DOCKERHUB_ORGANISATION
 }
 
 if(![String]::IsNullOrWhiteSpace($env:JENKINS_VERSION)) {
@@ -30,7 +30,7 @@ if(![String]::IsNullOrWhiteSpace($env:IMAGE_TYPE)) {
 }
 
 $env:JENKINS_VERSION = "$JenkinsVersion"
-$env:DOCKERHUB_ORGANISATION = "$Organization"
+$env:DOCKERHUB_ORGANISATION = "$Organisation"
 $env:DOCKERHUB_REPO = "$Repository"
 Write-Host "= PREPARE: env:JENKINS_VERSION = $env:JENKINS_VERSION"
 
@@ -58,7 +58,7 @@ Write-Host "= PREPARE: env:COMMIT_SHA = $env:COMMIT_SHA"
 $baseDockerCmd = 'docker-compose --file=build-windows.yaml'
 $baseDockerBuildCmd = '{0} build --parallel --pull' -f $baseDockerCmd
 
-Write-Host "= PREPARE: List of $Organization/$Repository images and additional tags to be processed:"
+Write-Host "= PREPARE: List of $Organisation/$Repository images and additional tags to be processed:"
 Invoke-Expression "$baseDockerCmd config"
 
 Write-Host "= BUILD: Building all images..."
