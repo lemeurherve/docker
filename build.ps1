@@ -29,9 +29,6 @@ if(![String]::IsNullOrWhiteSpace($env:IMAGE_TYPE)) {
     $ImageType = $env:IMAGE_TYPE
 }
 
-# this is the jdk version that will be used for the 'bare tag' images, e.g., jdk17-hotspot-windowsservercore-ltsc2019 -> windowsservercore-ltsc2019
-$defaultJdk = '17'
-$builds = @{}
 $env:DOCKERHUB_ORGANISATION = "$Organisation"
 $env:DOCKERHUB_REPO = "$Repository"
 $env:JENKINS_VERSION = "$JenkinsVersion"
@@ -63,25 +60,19 @@ Write-Host "= PREPARE: env:COMMIT_SHA = $env:COMMIT_SHA"
 $baseDockerCmd = 'docker-compose --file=build-windows.yaml'
 $baseDockerBuildCmd = '{0} build --parallel --pull' -f $baseDockerCmd
 
-Invoke-Expression "$baseDockerCmd config --services" 2>$null | ForEach-Object {
-    $image = '{0}-hotspot-{1}-{2}' -f $_, $env:WINDOWS_FLAVOR, $env:WINDOWS_VERSION # Ex: "jdk17-hotspot-windowsservercore-ltsc2019"
-
-    # Remove the 'jdk' prefix
-    $jdkMajorVersion = $_.Remove(0,3)
-
-    $versionTag = "${JenkinsVersion}-${image}"
-    $tags = @( $image, $versionTag )
-
-    # Additional image tag without any 'jdk' prefix for the default JDK
-    $baseImage = "${env:WINDOWS_FLAVOR}-${env:WINDOWS_VERSION}"
-    if ($jdkMajorVersion -eq "$defaultJdk") {
-        $tags += $baseImage
-        $tags += "${JenkinsVersion}-${baseImage}"
+$builds = @{}
+$compose = Invoke-Expression "$baseDockerCmd config --format=json" 2>$null | ConvertFrom-Json
+foreach ($service in $compose.services.PSObject.Properties) {
+    $imageParts = $service.Value.image -split ':'
+    $image = $imageParts[1]
+    $tags = @($image)
+    foreach ($longTag in $service.Value.build.tags) {
+        $tagParts = $longTag -split ':'
+        $tags += $tagParts[1]
     }
-
     $builds[$image] = @{
         'Tags' = $tags;
-    }
+    }    
 }
 
 Write-Host "= PREPARE: List of $Organisation/$Repository images and tags to be processed:"
