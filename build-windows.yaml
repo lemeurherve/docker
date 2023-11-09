@@ -5,11 +5,13 @@ services:
       context: ./
       dockerfile: ./windows/${WINDOWS_FLAVOR}/hotspot/Dockerfile
       args:
-        JAVA_VERSION: "11.0.20.1_1"
-        JENKINS_VERSION: ${JENKINS_VERSION}
-        JENKINS_SHA: ${JENKINS_SHA}
         COMMIT_SHA: ${COMMIT_SHA}
+        JAVA_HOME: "C:/openjdk-11"
+        JAVA_VERSION: "11.0.20.1_1"
+        JENKINS_SHA: ${JENKINS_SHA}
+        JENKINS_VERSION: ${JENKINS_VERSION}
         TOOLS_WINDOWS_VERSION: ${TOOLS_WINDOWS_VERSION}
+        WINDOWS_VERSION: ${WINDOWS_VERSION}
       tags:
         - "${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:${JENKINS_VERSION}-jdk11-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}"
   jdk17:
@@ -18,11 +20,13 @@ services:
       context: ./
       dockerfile: ./windows/${WINDOWS_FLAVOR}/hotspot/Dockerfile
       args:
-        JAVA_VERSION: "17.0.8.1_1"
-        JENKINS_VERSION: ${JENKINS_VERSION}
-        JENKINS_SHA: ${JENKINS_SHA}
         COMMIT_SHA: ${COMMIT_SHA}
+        JAVA_HOME: "C:/openjdk-17"
+        JAVA_VERSION: "17.0.8.1_1"
+        JENKINS_SHA: ${JENKINS_SHA}
+        JENKINS_VERSION: ${JENKINS_VERSION}
         TOOLS_WINDOWS_VERSION: ${TOOLS_WINDOWS_VERSION}
+        WINDOWS_VERSION: ${WINDOWS_VERSION}
       tags:
         - "${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:${JENKINS_VERSION}-jdk17-hotspot-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}"
         - "${DOCKERHUB_ORGANISATION}/${DOCKERHUB_REPO}:${JENKINS_VERSION}-${WINDOWS_FLAVOR}-${WINDOWS_VERSION}"
