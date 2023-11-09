@@ -30,13 +30,13 @@ stage('Build') {
                         */
                         stage("Build ${imageType}") {
                             infra.withDockerCredentials {
-                                powershell './build.ps1'
+                                powershell './make.ps1'
                             }
                         }
 
                         stage("Test ${imageType}") {
                             infra.withDockerCredentials {
-                                def windowsTestStatus = powershell(script: './build.ps1 test', returnStatus: true)
+                                def windowsTestStatus = powershell(script: './make.ps1 test', returnStatus: true)
                                 junit(allowEmptyResults: true, keepLongStdio: true, testResults: 'target/**/junit-results.xml')
                                 if (windowsTestStatus > 0) {
                                     // If something bad happened let's clean up the docker images
@@ -50,7 +50,7 @@ stage('Build') {
                         //    stage('Publish Experimental') {
                         //        infra.withDockerCredentials {
                         //            withEnv(['DOCKERHUB_ORGANISATION=jenkins4eval','DOCKERHUB_REPO=jenkins']) {
-                        //                powershell './build.ps1 publish'
+                        //                powershell './make.ps1 publish'
                         //            }
                         //        }
                         //    }
@@ -64,7 +64,7 @@ stage('Build') {
                                 stage('Publish') {
                                     infra.withDockerCredentials {
                                         withEnv(['DOCKERHUB_ORGANISATION=jenkins','DOCKERHUB_REPO=jenkins']) {
-                                            powershell './build.ps1 publish'
+                                            powershell './make.ps1 publish'
                                         }
                                     }
                                 }
