@@ -72,6 +72,8 @@ foreach ($service in $compose.services.PSObject.Properties) {
     }
     $builds[$image] = @{
         'Tags' = $tags;
+        # Variable depending on the JDK version
+        'JavaHome' = $service.Value.build.args.JAVA_HOME;
         'JavaVersion' = $service.Value.build.args.JAVA_VERSION;
     }    
 }
@@ -99,6 +101,7 @@ function Test-Image {
 
     $env:CONTROLLER_IMAGE = $ImageName
     $env:DOCKERFILE = 'windows/{0}/hotspot/Dockerfile' -f $env:WINDOWS_FLAVOR
+    $env:JAVAHOME = $builds[$ImageName]['JavaHome']
     $env:JAVAVERSION = $builds[$ImageName]['JavaVersion']
 
     if (Test-Path ".\target\$ImageName") {
@@ -116,6 +119,7 @@ function Test-Image {
     }
     Remove-Item env:\CONTROLLER_IMAGE
     Remove-Item env:\DOCKERFILE
+    Remove-Item env:\JAVAHOME
     Remove-Item env:\JAVAVERSION
 }
 
