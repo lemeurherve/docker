@@ -99,7 +99,7 @@ function Test-Image {
 
     $env:CONTROLLER_IMAGE = $ImageName
     $env:DOCKERFILE = 'windows/{0}/hotspot/Dockerfile' -f $env:WINDOWS_FLAVOR
-    $env:JAVA_VERSION = $builds[$ImageName]['JavaVersion']
+    $env:JAVAVERSION = $builds[$ImageName]['JavaVersion']
 
     if (Test-Path ".\target\$ImageName") {
         Remove-Item -Recurse -Force ".\target\$ImageName"
@@ -116,7 +116,7 @@ function Test-Image {
     }
     Remove-Item env:\CONTROLLER_IMAGE
     Remove-Item env:\DOCKERFILE
-    Remove-Item env:\JAVA_VERSION
+    Remove-Item env:\JAVAVERSION
 }
 
 if($target -eq "test") {
