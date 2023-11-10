@@ -7,7 +7,7 @@ $global:TEST_TAG=$global:SUT_IMAGE.Replace('pester-jenkins-', '')
 
 $global:WORK = Join-Path $PSScriptRoot "upgrade-plugins/work-${global:SUT_IMAGE}"
 
-Describe "[plugins-cli/$global:TEST_TAG] build image" {
+Describe "[plugins-cli > $global:TEST_TAG] build image" {
   BeforeEach {
     Push-Location -StackName 'jenkins' -Path "$PSScriptRoot/.."
   }
@@ -22,13 +22,13 @@ Describe "[plugins-cli/$global:TEST_TAG] build image" {
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] cleanup container" {
+Describe "[plugins-cli > $global:TEST_TAG] cleanup container" {
   It 'cleanup' {
     Cleanup $global:SUT_CONTAINER | Out-Null
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plugin-cli" {
+Describe "[plugins-cli > $global:TEST_TAG] plugins are installed with jenkins-plugin-cli" {
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli $PSScriptRoot/plugins-cli
     $exitCode | Should -Be 0
@@ -62,7 +62,7 @@ Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plug
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plugin-cli with non-default REF" {
+Describe "[plugins-cli > $global:TEST_TAG] plugins are installed with jenkins-plugin-cli with non-default REF" {
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli-ref $PSScriptRoot/plugins-cli/ref
     $exitCode | Should -Be 0
@@ -99,7 +99,7 @@ Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plug
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plugin-cli from a plugins file" {
+Describe "[plugins-cli > $global:TEST_TAG] plugins are installed with jenkins-plugin-cli from a plugins file" {
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli $PSScriptRoot/plugins-cli
     $exitCode | Should -Be 0
@@ -136,7 +136,7 @@ Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plug
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plugin-cli even when already exist" {
+Describe "[plugins-cli > $global:TEST_TAG] plugins are installed with jenkins-plugin-cli even when already exist" {
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli $PSScriptRoot/plugins-cli
     $exitCode | Should -Be 0
@@ -154,7 +154,7 @@ Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plug
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
+Describe "[plugins-cli > $global:TEST_TAG] clean work directory" {
   It 'cleanup' {
     if(Test-Path $PSScriptRoot/upgrade-plugins/work-$global:SUT_IMAGE) {
       Remove-Item -Recurse -Force $PSScriptRoot/upgrade-plugins/work-$global:SUT_IMAGE | Out-Null
@@ -162,7 +162,7 @@ Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] plugins are getting upgraded but not downgraded" {
+Describe "[plugins-cli > $global:TEST_TAG] plugins are getting upgraded but not downgraded" {
   It 'builds child image' {
     # Initial execution
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli $PSScriptRoot/plugins-cli
@@ -204,7 +204,7 @@ Describe "[plugins-cli/$global:TEST_TAG] plugins are getting upgraded but not do
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
+Describe "[plugins-cli > $global:TEST_TAG] clean work directory" {
   It 'cleanup' {
     if(Test-Path $global:WORK) {
       Remove-Item -Recurse -Force $global:WORK | Out-Null
@@ -212,7 +212,7 @@ Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] do not upgrade if plugin has been manually updated" {
+Describe "[plugins-cli > $global:TEST_TAG] do not upgrade if plugin has been manually updated" {
   
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli $PSScriptRoot/plugins-cli
@@ -253,7 +253,7 @@ Describe "[plugins-cli/$global:TEST_TAG] do not upgrade if plugin has been manua
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
+Describe "[plugins-cli > $global:TEST_TAG] clean work directory" {
   It 'cleanup' {
     if(Test-Path $global:WORK) {
       Remove-Item -Recurse -Force $global:WORK | Out-Null
@@ -261,7 +261,7 @@ Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] upgrade plugin even if it has been manually updated when PLUGINS_FORCE_UPGRADE=true" {
+Describe "[plugins-cli > $global:TEST_TAG] upgrade plugin even if it has been manually updated when PLUGINS_FORCE_UPGRADE=true" {
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli $PSScriptRoot/plugins-cli
     $exitCode | Should -Be 0
@@ -299,7 +299,7 @@ Describe "[plugins-cli/$global:TEST_TAG] upgrade plugin even if it has been manu
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
+Describe "[plugins-cli > $global:TEST_TAG] clean work directory" {
   It 'cleanup' {
     if(Test-Path $global:WORK) {
       Remove-Item -Recurse -Force $global:WORK | Out-Null
@@ -307,21 +307,21 @@ Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] plugins are installed with jenkins-plugin-cli and no war" {
+Describe "[plugins-cli > $global:TEST_TAG] plugins are installed with jenkins-plugin-cli and no war" {
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli-no-war $PSScriptRoot/plugins-cli/no-war
     $exitCode | Should -Be 0
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] Use a custom jenkins.war" {
+Describe "[plugins-cli > $global:TEST_TAG] Use a custom jenkins.war" {
   It 'builds child image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE-plugins-cli-custom-war $PSScriptRoot/plugins-cli/custom-war --no-cache
     $exitCode | Should -Be 0
   }
 }
 
-Describe "[plugins-cli/$global:TEST_TAG] clean work directory" {
+Describe "[plugins-cli > $global:TEST_TAG] clean work directory" {
   It 'cleanup' {
     if(Test-Path $global:WORK) {
       Remove-Item -Recurse -Force $global:WORK | Out-Null

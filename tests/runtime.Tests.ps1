@@ -5,7 +5,7 @@ $global:SUT_IMAGE=Get-SutImage
 $global:SUT_CONTAINER=Get-SutImage
 $global:TEST_TAG=$global:SUT_IMAGE.Replace('pester-jenkins-', '')
 
-Describe "[runtime/$global:TEST_TAG] build image" {
+Describe "[runtime > $global:TEST_TAG] build image" {
   BeforeEach {
     Push-Location -StackName 'jenkins' -Path "$PSScriptRoot/.."
   }
@@ -20,13 +20,13 @@ Describe "[runtime/$global:TEST_TAG] build image" {
   }
 }
 
-Describe "[runtime/$global:TEST_TAG] cleanup container" {
+Describe "[runtime > $global:TEST_TAG] cleanup container" {
   It 'cleanup' {
     Cleanup $global:SUT_CONTAINER | Out-Null
   }
 }
 
-Describe "[runtime/$global:TEST_TAG] test multiple JENKINS_OPTS" {
+Describe "[runtime > $global:TEST_TAG] test multiple JENKINS_OPTS" {
   It '"--help --version" should return the version, not the help' {
     # need the last line of output
     $exitCode, $stdout, $stderr = Run-Program 'docker.exe' "run --rm -e JENKINS_OPTS=`"--help --version`" --name $global:SUT_CONTAINER -P $global:SUT_IMAGE"
@@ -35,7 +35,7 @@ Describe "[runtime/$global:TEST_TAG] test multiple JENKINS_OPTS" {
   }
 }
 
-Describe "[runtime/$global:TEST_TAG] test jenkins arguments" {
+Describe "[runtime > $global:TEST_TAG] test jenkins arguments" {
   It 'running --help --version should return the version, not the help' {
     # need the last line of output
     $exitCode, $stdout, $stderr = Run-Program 'docker.exe' "run --rm --name $global:SUT_CONTAINER -P $global:SUT_IMAGE --help --version"
@@ -56,7 +56,7 @@ Describe "[runtime/$global:TEST_TAG] test jenkins arguments" {
   }
 }
 
-Describe "[runtime/$global:TEST_TAG] passing JVM parameters" {
+Describe "[runtime > $global:TEST_TAG] passing JVM parameters" {
   BeforeAll {
     $tzSetting = '-Duser.timezone=Europe/Madrid'
     $tzRegex = [regex]::Escape("Europe/Madrid")

@@ -5,7 +5,7 @@ $global:SUT_IMAGE=Get-SutImage
 $global:SUT_CONTAINER=Get-SutImage
 $global:TEST_TAG=$global:SUT_IMAGE.Replace('pester-jenkins-', '')
 
-Describe "[functions/$global:TEST_TAG] build image" {
+Describe "[functions > $global:TEST_TAG] build image" {
   BeforeEach {
     Push-Location -StackName 'jenkins' -Path "$PSScriptRoot/.."
   }
@@ -20,7 +20,7 @@ Describe "[functions/$global:TEST_TAG] build image" {
   }
 }
 
-Describe "[functions/$global:TEST_TAG] Check-VersionLessThan" {
+Describe "[functions > $global:TEST_TAG] Check-VersionLessThan" {
   It 'exit codes work' {
     docker run --rm $global:SUT_IMAGE "exit -1"
     $LastExitCode | Should -Be -1
@@ -72,7 +72,7 @@ Describe "[functions/$global:TEST_TAG] Check-VersionLessThan" {
   }
 }
 
-Describe "[functions/$global:TEST_TAG] Copy-ReferenceFile" {
+Describe "[functions > $global:TEST_TAG] Copy-ReferenceFile" {
   It 'build test image' {
     $exitCode, $stdout, $stderr = Build-DockerChild $global:SUT_IMAGE $PSScriptRoot/functions
     $exitCode | Should -Be 0
