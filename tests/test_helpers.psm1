@@ -111,7 +111,7 @@ function Build-Docker {
 
     Write-Host "=== Build-Docker args: $args"
 
-    return (Run-Program 'docker.exe' "build --build-arg COMMIT_SHA=$env:COMMIT_SHA --build-arg JAVA_HOME=$env:JAVA_HOME --build-arg JAVA_VERSION=$env:JAVA_VERSION --build-arg JENKINS_SHA=$env:JENKINS_SHA --build-arg JENKINS_VERSION=$env:JENKINS_VERSION --build-arg TOOLS_WINDOWS_VERSION=$env:TOOLS_WINDOWS_VERSION --build-arg WINDOWS_VERSION=$env:WINDOWS_VERSION --file $DOCKERFILE $args .")
+    return (Run-Program 'docker.exe' "build --build-arg COMMIT_SHA=$env:COMMIT_SHA --build-arg JAVA_HOME=$env:JAVAHOME --build-arg JAVA_VERSION=$env:JAVAVERSION --build-arg JENKINS_SHA=$env:JENKINS_SHA --build-arg JENKINS_VERSION=$env:JENKINS_VERSION --build-arg TOOLS_WINDOWS_VERSION=$env:TOOLS_WINDOWS_VERSION --build-arg WINDOWS_VERSION=$env:WINDOWS_VERSION --file $DOCKERFILE $args .")
 }
 
 function Build-DockerChild($tag, $dir) {
