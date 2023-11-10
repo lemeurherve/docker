@@ -13,7 +13,7 @@ Describe "[plugins-cli/$global:TEST_TAG] build image" {
   }
 
   It 'builds image' {
-    $exitCode, $stdout, $stderr = Run-Program 'docker.exe' "build --build-arg JENKINS_VERSION=$env:JENKINS_VERSION --build-arg JENKINS_SHA=$env:JENKINS_SHA --file $env:DOCKERFILE -t $global:SUT_IMAGE ."
+    $exitCode, $stdout, $stderr = Run-Program 'docker.exe' "build --build-arg COMMIT_SHA=$env:COMMIT_SHA --build-arg JAVA_HOME=$env:JAVA_HOME --build-arg JAVA_VERSION=$env:JAVA_VERSION --build-arg JENKINS_SHA=$env:JENKINS_SHA --build-arg JENKINS_VERSION=$env:JENKINS_VERSION --build-arg TOOLS_WINDOWS_VERSION=$env:TOOLS_WINDOWS_VERSION --build-arg WINDOWS_VERSION=$env:WINDOWS_VERSION --file $env:DOCKERFILE -t $global:SUT_IMAGE ."
     $exitCode | Should -Be 0
   }
 
