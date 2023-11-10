@@ -82,8 +82,7 @@ function Get-SutImage {
 
 function Run-Program($cmd, $params, $verbose=$false) {
     if($verbose) {
-        Write-Host "== Run-Program, cmd: $cmd"
-        Write-Host "== Run-Program, cmd: $params"
+        Write-Host "$cmd $params"
     }
     $psi = New-Object System.Diagnostics.ProcessStartInfo 
     $psi.CreateNoWindow = $true 
