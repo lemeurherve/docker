@@ -173,7 +173,7 @@ if($target -eq "publish") {
     foreach($b in $builds.Keys) {
         foreach($tag in $Builds[$b]['Tags']) {
             Write-Host "Publishing $b => tag=$tag"
-            $cmd = "docker push {0}/{1}:{2}" -f $Organization, $Repository, $tag
+            $cmd = "docker push {0}/{1}:{2}" -f $Organisation, $Repository, $tag
             switch ($DryRun) {
                 $true { Write-Host "(dry-run) $cmd" }
                 $false { Invoke-Expression $cmd}
