@@ -63,14 +63,10 @@ $baseDockerBuildCmd = '{0} build --parallel --pull' -f $baseDockerCmd
 $builds = @{}
 $compose = Invoke-Expression "$baseDockerCmd config --format=json" 2>$null | ConvertFrom-Json
 foreach ($service in $compose.services.PSObject.Properties) {
-    $imageParts = $service.Value.image -split ':'
-    $image = $imageParts[1]
-    $tags = @($image)
-    foreach ($longTag in $service.Value.build.tags) {
-        $tagParts = $longTag -split ':'
-        $tags += $tagParts[1]
-    }
-    $builds[$image] = @{
+    $tags = @($service.Value.image)
+    $tags += $service.Value.build.tags
+
+    $builds[$service.Value.image] = @{
         'Tags' = $tags;
         # Variable depending on the JDK version
         'JavaHome' = $service.Value.build.args.JAVA_HOME;
