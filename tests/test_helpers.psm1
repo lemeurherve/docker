@@ -1,4 +1,3 @@
-
 Import-Module -DisableNameChecking -Force $PSScriptRoot/../jenkins-support.psm1
 
 function Test-CommandExists($command) {
@@ -67,20 +66,17 @@ function Retry-Command {
 }
 
 function Get-SutImage {
-    $FOLDER = Get-EnvOrDefault 'FOLDER' ''
+    $DOCKERFILE = Get-EnvOrDefault 'DOCKERFILE' ''
+    $IMAGENAME = Get-EnvOrDefault 'CONTROLLER_IMAGE' '' # Ex: jdk17-hotspot-windowsservercore-ltsc2019
 
-    $REAL_FOLDER=Resolve-Path -Path "$PSScriptRoot/../${FOLDER}"
+    $REAL_DOCKERFILE=Resolve-Path -Path "$PSScriptRoot/../${DOCKERFILE}"
 
-    if(($FOLDER -match '^(?<jdk>[0-9]+)[\\/](?<os>.+)[\\/](?<flavor>.+)[\\/](?<jvm>.+)$') -and (Test-Path $REAL_FOLDER)) {
-        $JDK = $Matches['jdk']
-        $FLAVOR = $Matches['flavor']
-        $JVM = $Matches['jvm']
-    } else {
-        Write-Error "Wrong folder format or folder does not exist: $FOLDER"
+    if(!($DOCKERFILE -match '^(?<os>.+)[\\/](?<flavor>.+)[\\/](?<jvm>.+)[\\/]Dockerfile$') -or !(Test-Path $REAL_DOCKERFILE)) {
+        Write-Error "Wrong Dockerfile path format or file does not exist: $DOCKERFILE"
         exit 1
     }
 
-    return "pester-jenkins-$JDK-$JVM-$FLAVOR".ToLower()
+    return "pester-jenkins-$IMAGENAME"
 }
 
 function Run-Program($cmd, $params, $verbose=$false) {
@@ -109,13 +105,8 @@ function Run-Program($cmd, $params, $verbose=$false) {
 }
 
 function Build-Docker {
-    $FOLDER = Get-EnvOrDefault 'FOLDER' ''
-    $FOLDER = $FOLDER.Trim()
-
-    if(-not [System.String]::IsNullOrWhiteSpace($env:JENKINS_VERSION)) {
-        return (Run-Program 'docker.exe' "build --build-arg JENKINS_VERSION=$env:JENKINS_VERSION --build-arg JENKINS_SHA=$env:JENKINS_SHA $args $FOLDER")
-    } 
-    return (Run-Program 'docker.exe' "build $args $FOLDER")
+    $DOCKERFILE = Get-EnvOrDefault 'DOCKERFILE' ''
+    return (Run-Program 'docker.exe' "build --build-arg COMMIT_SHA=$env:COMMIT_SHA --build-arg JAVA_HOME=$env:JAVAHOME --build-arg JAVA_VERSION=$env:JAVAVERSION --build-arg JENKINS_SHA=$env:JENKINS_SHA --build-arg JENKINS_VERSION=$env:JENKINS_VERSION --build-arg TOOLS_WINDOWS_VERSION=$env:TOOLS_WINDOWS_VERSION --build-arg WINDOWS_VERSION=$env:WINDOWS_VERSION --file $DOCKERFILE $args .")
 }
 
 function Build-DockerChild($tag, $dir) {
