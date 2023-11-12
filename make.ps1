@@ -154,9 +154,17 @@ if($target -eq "test") {
 
         Write-Host "= TEST: Testing all images..."
         foreach($image in $builds.Keys) {
-            Test-Image $image
+            Start-Job -Name "test-$image" -ScriptBlock { Test-Image $input } -InputObject $image
+            # Receive-Job -Name Job45 -Keep
+            # Test-Image $image
         }
 
+        Write-Host "== Get-Job"
+        Get-Job
+        Write-Host "== Get-Job | Wait-Job"
+        Get-Job | Wait-Job
+
+        # TODO
         # Fail if any test failures
         if($testFailed -ne $false) {
             Write-Error "Test stage failed!"
