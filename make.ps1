@@ -92,7 +92,7 @@ if($lastExitCode -ne 0 -and !$DryRun) {
     exit $lastExitCode
 }
 
-function Test-Image {
+function TestImage {
     param (
         $ImageName
     )
@@ -154,9 +154,21 @@ if($target -eq "test") {
 
         Write-Host "= TEST: Testing all images..."
         foreach($image in $builds.Keys) {
-            Start-Job -Name "test-$image" -ScriptBlock { Test-Image $input } -InputObject $image
+            # Start-Job -Name "test-$image" -ScriptBlock { TestImage $input } -InputObject $image
+            #  -StreamingHost $Host
+            Start-Job -Name "test-$image" -ScriptBlock { 
+
+                # Redefine function FOO in the context of this job.
+                $function:TestImage = "$using:function:TestImage" 
+                
+                Write-Host "== Start-Job $input" 
+                # Now FOO can be invoked.
+                TestImage $input
+              
+            }
+        # } | Receive-Job -Wait -AutoRemoveJob
             # Receive-Job -Name Job45 -Keep
-            # Test-Image $image
+            # TestImage $image
         }
 
         Write-Host "== Get-Job"
