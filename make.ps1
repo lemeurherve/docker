@@ -76,7 +76,7 @@ if($lastExitCode -ne 0 -and !$DryRun) {
     exit $lastExitCode
 }
 
-function Test-Image {
+function TestImage {
     param (
         $ImageName
     )
@@ -133,9 +133,50 @@ if($target -eq 'test') {
         $configuration.Output.Verbosity = 'Diagnostic'
         $configuration.CodeCoverage.Enabled = $false
 
+        $functionDefinition = "function TestImage {$function:TestImage}"
+        $maxthreads = 4
+        $colors = "Blue", "Red", "Cyan", "Green", "Magenta"
+        $colorCount = $colors.Length
+
+        Get-Job test* | Remove-Job | Out-Null
+
         Write-Host '= TEST: Testing all images...'
-        foreach($image in $builds.Keys) {
-            Test-Image $image.split(':')[1]
+        $jobs = foreach($image in $builds.Keys) {
+
+            $running = Get-Job -State Running
+            Write-Host("Running:"+$running.Count.ToString())
+            if ($running.Count -ge $maxthreads) {
+                $null = $running | Wait-Job
+            }
+            #Start-Sleep 1
+            $anImage = $image.split(':')[1]
+            Write-Host "Starting job for $anImage"
+            $ThreadName = "test-$anImage"
+            
+            Start-Job -Name $ThreadName {
+                . ([scriptblock]::Create($using:functionDefinition)) # => Load the function in this scope
+                return TestImage -Name $using:anImage
+            } # => Better to capture the Job instances /// | Out-Null
+        }
+
+        try {
+            while (($jobs | Where-Object { $_.State -ieq "running" } | Measure-Object).Count -gt 0) {
+                $jobs | ForEach-Object {
+                    $id = $_.Id
+                    $fgColor = $colors[($id - 1) % $colorCount]
+                    $out = $_ | Receive-Job
+                    $out = $out -split [System.Environment]::NewLine
+                    $out | ForEach-Object {
+                        Write-Host "$id> "-NoNewline -ForegroundColor $fgColor
+                        Write-Host $_
+                    }
+                }
+            }
+        } finally {
+            Write-Host "Stopping Parallel Jobs ..." -NoNewline
+            $jobs | Stop-Job
+            $jobs | Remove-Job -Force
+            Write-Host " done."
         }
 
         # Fail if any test failures
