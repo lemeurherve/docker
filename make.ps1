@@ -135,16 +135,97 @@ if($target -eq 'test') {
 
         Write-Host '= TEST: Testing all images...'
         foreach($image in $builds.Keys) {
-            Test-Image $image.split(':')[1]
+        #     Test-Image $image.split(':')[1]
+        # }
+
+            $testFilePath = "./tests"
+            # Start a jobs running each of the test files
+            $testFiles = Get-ChildItem $testFilePath
+            $resultFileNumber = 0
+            foreach ($testFile in $testFiles)
+            {
+                $resultFileNumber++
+                $testName = Split-Path $testFile -leaf
+            
+                # Create the job, be sure to pass argument in from the ArgumentList which 
+                # are needed for inside the script block, they are NOT automatically passed.
+                Start-Job `
+                -ArgumentList $testFile, $resultFileNumber `
+                -Name $testName `
+                -ScriptBlock {
+                    param($testFile, $resultFileNumber)
+            
+                    # Start trace for local debugging if TEST_LOG=true
+                    # the traces will show you output in the ./testlogs folder and the files
+                    # are updated as the tests run so you can follow along
+                    if ($env:TEST_LOGS -eq "true") {
+                        Start-Transcript -Path "./testlogs/$(Split-Path $testFile -leaf).integrationtest.log"
+                    }
+            
+                    # Run the test file
+                    Write-Host "$testFile to result file #$resultFileNumber"
+
+                    $env:CONTROLLER_IMAGE = $ImageName
+                    $env:DOCKERFILE = 'windows/{0}/hotspot/Dockerfile' -f $env:WINDOWS_FLAVOR
+                
+                    if (Test-Path ".\target\$ImageName") {
+                        Remove-Item -Recurse -Force ".\target\$ImageName"
+                    }
+                    New-Item -Path ".\target\$ImageName" -Type Directory | Out-Null
+                    $configuration.TestResult.OutputPath = ".\target\$ImageName\junit-results.xml"
+                
+                    # $TestResults = Invoke-Pester -Configuration $configuration
+                    
+                    ## TODO: review
+                    $result = Invoke-Pester "$testFile" -Configuration $configuration
+            
+                    if ($result.FailedCount -gt 0) {
+                        throw "1 or more assertions failed"
+                    }
+                    ## end TODO
+
+                    if ($TestResults.FailedCount -gt 0) {
+                        Write-Host "There were $($TestResults.FailedCount) failed tests in $ImageName"
+                    } else {
+                        Write-Host "There were $($TestResults.PassedCount) passed tests out of $($TestResults.TotalCount) in $ImageName"
+                    }
+                
+                    Remove-Item env:\CONTROLLER_IMAGE
+                    Remove-Item env:\DOCKERFILE            
+                } 
+            }
         }
 
-        # Fail if any test failures
-        if($testFailed -ne $false) {
-            Write-Error 'Test stage failed!'
-            exit 1
+        # Poll to give insight into which jobs are still running so you can spot long running ones       
+        do {
+            Write-Host ">> Still running tests @ $(Get-Date -Format "HH:mm:ss")" -ForegroundColor Blue
+            Get-Job | Where-Object { $_.State -eq "Running" } | Format-Table -AutoSize 
+            Start-Sleep -Seconds 15
+        } while ((get-job | Where-Object { $_.State -eq "Running" } | Measure-Object).Count -gt 1)
+        
+        # Catch edge cases by wait for all of them to finish
+        Get-Job | Wait-Job
+        
+        $failedJobs = Get-Job | Where-Object { -not ($_.State -eq "Completed")}
+        
+        # Receive the results of all the jobs, don't stop at errors
+        Get-Job | Receive-Job -AutoRemoveJob -Wait -ErrorAction 'Continue'
+        
+        if ($failedJobs.Count -gt 0) {
+            Write-Host "Failed Jobs" -ForegroundColor Red
+            $failedJobs
+            throw "One or more tests failed"
         } else {
             Write-Host 'Test stage passed!'
         }
+
+        # # Fail if any test failures
+        # if($testFailed -ne $false) {
+        #     Write-Error 'Test stage failed!'
+        #     exit 1
+        # } else {
+        #     Write-Host 'Test stage passed!'
+        # }
     }
 }
 
