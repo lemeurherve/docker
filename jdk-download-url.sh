@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 # Check if at least one argument was passed to the script
 # If one argument was passed and JAVA_VERSION is set, assign the argument to OS
 # If two arguments were passed, assign them to JAVA_VERSION and OS respectively
