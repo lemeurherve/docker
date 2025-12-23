@@ -19,6 +19,7 @@ def envVars = ['PUBLISH=true']
 // and disable images publication out of caution
 def SIMULATE_LTS_BUILD = false
 
+// TODO: replace by the first published LTS including 2.534+ with Java 25 enabled
 if (SIMULATE_LTS_BUILD) {
     envVars = [
         'PUBLISH=false',
