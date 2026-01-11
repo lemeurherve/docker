@@ -10,8 +10,10 @@
 set -eu -o pipefail
 
 : "${DOCKERHUB_REGISTRY:=docker.io}"
+: "${GHRC_REGISTRY:=ghcr.io}"
 : "${CONTAINER_ORGANISATION:=jenkins}"
 : "${CONTAINER_REPOSITORY:=jenkins}"
+: "${PUBLISH_ONLY_TO_REGISTRY:=docker.io}"
 
 function sort-versions() {
     if [ "$(uname)" == 'Darwin' ]; then
@@ -88,8 +90,10 @@ export COMMIT_SHA JENKINS_VERSION WAR_SHA LATEST_WEEKLY LATEST_LTS
 cat <<EOF
 Using the following settings:
 * DOCKERHUB_REGISTRY: ${DOCKERHUB_REGISTRY}
+* GHRC_REGISTRY: ${GHRC_REGISTRY}
 * CONTAINER_ORGANISATION: ${CONTAINER_ORGANISATION}
 * CONTAINER_REPOSITORY: ${CONTAINER_REPOSITORY}
+* PUBLISH_ONLY_TO_REGISTRY (publish on all registries if empty): ${PUBLISH_ONLY_TO_REGISTRY}
 * JENKINS_VERSION: ${JENKINS_VERSION}
 * WAR_SHA: ${WAR_SHA}
 * COMMIT_SHA: ${COMMIT_SHA}

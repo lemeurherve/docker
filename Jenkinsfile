@@ -12,7 +12,11 @@ H 6,21 * * 3''')])
 properties(listOfProperties)
 
 // Default environment variable set to allow images publication
-def envVars = ['PUBLISH=true']
+def envVars = [
+    'PUBLISH=true',
+    // TODO: remove when all requirements for #1140 are completed
+    'PUBLISH_ONLY_TO_REGISTRY=docker.io'
+]
 
 // List of architectures and corresponding ci.jenkins.io agent labels
 def architecturesAndCiJioAgentLabels = [
