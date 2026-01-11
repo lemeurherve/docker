@@ -23,8 +23,22 @@ variable "WAR_URL" {
   default = ""
 }
 
+variable "registries" {
+  default = [DOCKERHUB_REGISTRY, GHCR_REGISTRY]
+}
+
 variable "DOCKERHUB_REGISTRY" {
   default = "docker.io"
+}
+
+variable "GHCR_REGISTRY" {
+  default = "ghcr.io"
+}
+
+# Allow to publish to only one specific registry
+# Set to empty to publish on all registries
+variable "PUBLISH_ONLY_TO_REGISTRY" {
+  default = ""
 }
 
 variable "CONTAINER_ORGANISATION" {
@@ -194,30 +208,32 @@ function "jdks_to_build" {
   result = is_jenkins_version_weekly() ? jdks_to_build_for_weekly : jdks_to_build_for_lts
 }
 
-# return a tag prefixed by the Jenkins version
-function "_tag_jenkins_version" {
-  params = [tag]
-  result = (notequal(tag, "")
-    ? "${DOCKERHUB_REGISTRY}/${CONTAINER_ORGANISATION}/${CONTAINER_REPOSITORY}:${JENKINS_VERSION}-${tag}"
-    : "${DOCKERHUB_REGISTRY}/${CONTAINER_ORGANISATION}/${CONTAINER_REPOSITORY}:${JENKINS_VERSION}")
+# return tag(s) containing the registry
+function "_registry_tags" {
+  params = [image_tag]
+  result = [
+    (equal(PUBLISH_ONLY_TO_REGISTRY, "")
+      ? [for reg in registries : "${reg}/${CONTAINER_ORGANISATION}/${CONTAINER_REPOSITORY}:${image_tag}"]
+      : ["${PUBLISH_ONLY_TO_REGISTRY}/${CONTAINER_ORGANISATION}/${CONTAINER_REPOSITORY}:${image_tag}"])
+  ]
 }
 
 # return a tag optionaly prefixed by the Jenkins version
 function "tag" {
   params = [prepend_jenkins_version, tag]
-  result = equal(prepend_jenkins_version, true) ? _tag_jenkins_version(tag) : "${DOCKERHUB_REGISTRY}/${CONTAINER_ORGANISATION}/${CONTAINER_REPOSITORY}:${tag}"
+  result = equal(prepend_jenkins_version, true) ? _registry_tags("${JENKINS_VERSION}-${tag}") : _registry_tags("${JENKINS_VERSION}")
 }
 
 # return a weekly optionaly prefixed by the Jenkins version
 function "tag_weekly" {
   params = [prepend_jenkins_version, tag]
-  result = equal(LATEST_WEEKLY, "true") ? tag(prepend_jenkins_version, tag) : ""
+  result = equal(LATEST_WEEKLY, "true") ? tag(prepend_jenkins_version, tag) : []
 }
 
 # return a LTS optionaly prefixed by the Jenkins version
 function "tag_lts" {
   params = [prepend_jenkins_version, tag]
-  result = equal(LATEST_LTS, "true") ? tag(prepend_jenkins_version, tag) : ""
+  result = equal(LATEST_LTS, "true") ? tag(prepend_jenkins_version, tag) : []
 }
 
 # return WAR_URL if not empty, get.jenkins.io URL depending on JENKINS_VERSION release line otherwise
@@ -270,7 +286,7 @@ function "platforms" {
 # Return an array of tags for linux images depending on the distribution and the jdk
 function "linux_tags" {
   params = [distribution, jdk]
-  result = (
+  result = flatten((
     ## Debian variants
     is_debian_variant(distribution)
     ? debian_tags(distribution, jdk)
@@ -282,18 +298,18 @@ function "linux_tags" {
       tag_lts(false, "lts-${distribution}-jdk${jdk}"),
 
       # Special case for Alpine
-      is_alpine(distribution) ? tag_weekly(false, "alpine${ALPINE_SHORT_TAG}-jdk${jdk}") : "",
+      is_alpine(distribution) ? tag_weekly(false, "alpine${ALPINE_SHORT_TAG}-jdk${jdk}") : [],
 
       # Special case for RHEL
-      is_rhel(distribution) ? tag_lts(true, "lts-${distribution}-jdk${jdk}") : "",
+      is_rhel(distribution) ? tag_lts(true, "lts-${distribution}-jdk${jdk}") : [],
 
       ## Default JDK extra short tags (except for current rhel)
-      is_default_jdk(jdk) && !is_rhel(distribution) ? tag(true, distribution) : "",
-      is_default_jdk(jdk) && !is_rhel(distribution) ? tag_weekly(false, distribution) : "",
-      is_default_jdk(jdk) && !is_rhel(distribution) ? tag_lts(false, "lts-${distribution}") : "",
-      is_default_jdk(jdk) && !is_rhel(distribution) ? tag_lts(true, "lts-${distribution}") : "",
+      is_default_jdk(jdk) && !is_rhel(distribution) ? tag(true, distribution) : [],
+      is_default_jdk(jdk) && !is_rhel(distribution) ? tag_weekly(false, distribution) : [],
+      is_default_jdk(jdk) && !is_rhel(distribution) ? tag_lts(false, "lts-${distribution}") : [],
+      is_default_jdk(jdk) && !is_rhel(distribution) ? tag_lts(true, "lts-${distribution}") : [],
     ]
-  )
+  ))
 }
 
 # Return if the distribution passed in parameter is Alpine
@@ -347,13 +363,13 @@ function "debian_tags" {
     tag_weekly(false, slim_prefix(variant, "jdk${jdk}")),
     tag_lts(false, "${slim_suffix(variant, "lts")}-jdk${jdk}"),
     # Tags for debian only
-    is_debian_slim(variant) ? "" : tag_weekly(false, slim_prefix(variant, "latest-jdk${jdk}")),
-    is_debian_slim(variant) ? "" : tag_lts(true, "${slim_suffix(variant, "lts")}-jdk${jdk}"),
+    is_debian_slim(variant) ? [] : tag_weekly(false, slim_prefix(variant, "latest-jdk${jdk}")),
+    is_debian_slim(variant) ? [] : tag_lts(true, "${slim_suffix(variant, "lts")}-jdk${jdk}"),
 
     ## If default jdk, short tags
-    is_default_jdk(jdk) ? tag(true, slim_prefix(variant, "")) : "",
-    is_default_jdk(jdk) ? tag_weekly(false, slim_prefix(variant, "latest")) : "",
-    is_default_jdk(jdk) ? tag_lts(false, slim_suffix(variant, "lts")) : "",
-    is_default_jdk(jdk) ? tag_lts(true, slim_suffix(variant, "lts")) : "",
+    is_default_jdk(jdk) ? tag(true, slim_prefix(variant, "")) : [],
+    is_default_jdk(jdk) ? tag_weekly(false, slim_prefix(variant, "latest")) : [],
+    is_default_jdk(jdk) ? tag_lts(false, slim_suffix(variant, "lts")) : [],
+    is_default_jdk(jdk) ? tag_lts(true, slim_suffix(variant, "lts")) : [],
   ]
 }

@@ -1,10 +1,6 @@
 #!/bin/bash -eu
 
-<<<<<<< HEAD
 # Publish any versions of the docker image not yet pushed to CONTAINER_ORGANISATION/CONTAINER_REPOSITORY
-=======
-# Publish any versions of the docker image not yet pushed to DOCKERHUB_ORGANISATION/DOCKERHUB_REPOSITORY
->>>>>>> 3eda8c8 (chore: don't use `JENKINS_REPO` and rename `DOCKERHUB_REPO` to `DOCKERHUB_REPOSITORY`)
 # Arguments:
 #   -n dry run, do not build or publish images
 #   -d debug
@@ -13,14 +9,11 @@
 
 set -eu -o pipefail
 
-<<<<<<< HEAD
 : "${DOCKERHUB_REGISTRY:=docker.io}"
+: "${GHRC_REGISTRY:=ghcr.io}"
 : "${CONTAINER_ORGANISATION:=jenkins}"
 : "${CONTAINER_REPOSITORY:=jenkins}"
-=======
-: "${DOCKERHUB_ORGANISATION:=jenkins}"
-: "${DOCKERHUB_REPOSITORY:=jenkins}"
->>>>>>> 3eda8c8 (chore: don't use `JENKINS_REPO` and rename `DOCKERHUB_REPO` to `DOCKERHUB_REPOSITORY`)
+: "${PUBLISH_ONLY_TO_REGISTRY:=docker.io}"
 
 function sort-versions() {
     if [ "$(uname)" == 'Darwin' ]; then
@@ -97,8 +90,10 @@ export COMMIT_SHA JENKINS_VERSION WAR_SHA LATEST_WEEKLY LATEST_LTS
 cat <<EOF
 Using the following settings:
 * DOCKERHUB_REGISTRY: ${DOCKERHUB_REGISTRY}
+* GHRC_REGISTRY: ${GHRC_REGISTRY}
 * CONTAINER_ORGANISATION: ${CONTAINER_ORGANISATION}
 * CONTAINER_REPOSITORY: ${CONTAINER_REPOSITORY}
+* PUBLISH_ONLY_TO_REGISTRY (publish on all registries if empty): ${PUBLISH_ONLY_TO_REGISTRY}
 * JENKINS_VERSION: ${JENKINS_VERSION}
 * WAR_SHA: ${WAR_SHA}
 * COMMIT_SHA: ${COMMIT_SHA}
