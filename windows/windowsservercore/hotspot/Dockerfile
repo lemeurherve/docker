@@ -100,16 +100,17 @@ RUN New-Item -ItemType Directory -Force -Path C:/ProgramData/Jenkins/Reference/i
 ARG JENKINS_VERSION
 ENV JENKINS_VERSION=${JENKINS_VERSION:-2.547}
 
-# jenkins.war checksum, download will be validated using it
-ARG WAR_SHA=ef0301ce35bff7ead76201a8202acad6338568f0832666a2672831b260e08088
-
 # Can be used to customize where jenkins.war get downloaded from
 ARG WAR_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war
+COPY jenkins.io-2026.key /temp/jenkins-key.pub
 
-# could use ADD but this one does not check Last-Modified header neither does it allow to control checksum
-# see https://github.com/docker/docker/issues/8331
+# could use ADD but this one does not check Last-Modified header
+# # see https://github.com/docker/docker/issues/8331
 RUN Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war; `
-    if ((Get-FileHash C:/ProgramData/Jenkins/jenkins.war -Algorithm SHA256).Hash -ne $env:WAR_SHA) {exit 1}
+    Invoke-WebRequest -Uri "$env:WAR_URL".asc -OutFile C:/temp/jenkins.war.asc; `
+    gpg --import C:/temp/jenkins-key.pub; `
+    gpg --verify C:/temp/jenkins.war.asc C:/ProgramData/Jenkins/jenkins.war; `
+    Remove-Item -Path C:/temp -Recurse | Out-Null
 
 ENV JENKINS_UC=https://updates.jenkins.io
 ENV JENKINS_UC_EXPERIMENTAL=https://updates.jenkins.io/experimental
