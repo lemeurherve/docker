@@ -46,12 +46,40 @@ RUN $version = (jlink --version) ; `
         --output /javaruntime ; `
     }
 
+# jenkins version being bundled in this docker image
+ARG JENKINS_VERSION
+ENV JENKINS_VERSION=${JENKINS_VERSION:-2.547}
+
+# Can be used to customize where jenkins.war get downloaded from
+ARG WAR_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war
+ENV WAR_URL=${WAR_URL}
+ENV WAR_ASC_URL=${WAR_URL}.asc
+
+COPY jenkins.io-2026.key /ProgramData/Jenkins/jenkins-key.pub
+
+# could use ADD but this one does not check Last-Modified header
+# # see https://github.com/docker/docker/issues/8331
+RUN Write-Host $env:WAR_URL; Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war; `
+    Write-Host $env:WAR_ASC_URL; Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war.asc
+
+ARG GNUGPG_VERSION=2.5.16_20251230
+RUN Invoke-WebRequest -Uri https://www.gnupg.org/ftp/gcrypt/binary/gnupg-w32-${env:GNUGPG_VERSION}.exe -OutFile C:/ProgramData/Jenkins/gnupg.exe ; `
+    Start-Process C:/ProgramData/Jenkins/gnupg.exe -ArgumentList "/S" -Wait ; `
+    Remove-Item C:/ProgramData/Jenkins/gnupg.exe
+
+ENV PATH="C:\Program Files (x86)\GnuPG\bin;$PATH"
+
+RUN gpg --version; `
+    gpg --import C:/ProgramData/Jenkins/jenkins-key.pub; `
+    gpg --verify C:/ProgramData/Jenkins/jenkins.war.asc C:/ProgramData/Jenkins/jenkins.war
+
 FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION}" AS controller
 
 ARG JAVA_HOME="C:/openjdk-17"
 ENV JAVA_HOME=${JAVA_HOME}
 
 COPY --from=jre-build /javaruntime $JAVA_HOME
+COPY --from=jre-build /ProgramData/Jenkins/jenkins.war /ProgramData/Jenkins/jenkins.war
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
@@ -100,21 +128,21 @@ RUN New-Item -ItemType Directory -Force -Path C:/ProgramData/Jenkins/Reference/i
 ARG JENKINS_VERSION
 ENV JENKINS_VERSION=${JENKINS_VERSION:-2.547}
 
-# Can be used to customize where jenkins.war get downloaded from
-ARG WAR_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war
-ARG WAR_ASC_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war.asc
-COPY jenkins.io-2026.key /temp/jenkins-key.pub
+# # Can be used to customize where jenkins.war get downloaded from
+# ARG WAR_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war
+# ARG WAR_ASC_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war.asc
+# COPY jenkins.io-2026.key /temp/jenkins-key.pub
 
-# could use ADD but this one does not check Last-Modified header
-# # see https://github.com/docker/docker/issues/8331
-# RUN Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war; `
-#     Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war.asc; `
-#     gpg --import C:/temp/jenkins-key.pub; `
-RUN Write-Host $env:WAR_URL; Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war;
-RUN Write-Host $env:WAR_ASC_URL; Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war.asc;
-RUN gpg --import C:/temp/jenkins-key.pub; `
-    gpg --verify C:/ProgramData/Jenkins/jenkins.war.asc C:/ProgramData/Jenkins/jenkins.war; `
-    Remove-Item -Path C:/temp -Recurse | Out-Null
+# # could use ADD but this one does not check Last-Modified header
+# # # see https://github.com/docker/docker/issues/8331
+# # RUN Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war; `
+# #     Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/temp/jenkins.war.asc; `
+# #     gpg --import C:/temp/jenkins-key.pub; `
+# RUN Write-Host $env:WAR_URL; Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war;
+# RUN Write-Host $env:WAR_ASC_URL; Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/temp/jenkins.war.asc;
+# RUN gpg --import C:/temp/jenkins-key.pub; `
+#     gpg --verify C:/temp/jenkins.war.asc C:/ProgramData/Jenkins/jenkins.war; `
+#     Remove-Item -Path C:/temp -Recurse | Out-Null
 
 ENV JENKINS_UC=https://updates.jenkins.io
 ENV JENKINS_UC_EXPERIMENTAL=https://updates.jenkins.io/experimental
