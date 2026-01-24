@@ -1,4 +1,5 @@
 ---
+# Must be kept until no LTS depends on it (2.541.x)
 name: Bump JDK17 version
 
 scms:
@@ -38,7 +39,6 @@ conditions:
         - windows/x64
 
 targets:
-  ## Global config file
   setJDK17VersionDockerBake:
     name: "Bump JDK17 version for Linux images in the docker-bake.hcl file"
     kind: hcl
@@ -49,24 +49,6 @@ targets:
     spec:
       file: docker-bake.hcl
       path: variable.JAVA17_VERSION.default
-    scmid: default
-  ## Dockerfiles
-  setJDK17Version:
-    name: "Bump JDK17 version in Dockerfiles"
-    kind: dockerfile
-    transformers:
-      - replacer:
-          from: "+"
-          to: "_"
-    spec:
-      files:
-        - alpine/hotspot/Dockerfile
-        - debian/Dockerfile
-        - rhel/Dockerfile
-        - windows/windowsservercore/hotspot/Dockerfile
-      instruction:
-        keyword: ARG
-        matcher: JAVA_VERSION
     scmid: default
 
 actions:

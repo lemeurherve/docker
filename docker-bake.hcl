@@ -51,6 +51,7 @@ variable "ALPINE_SHORT_TAG" {
   default = regex_replace(ALPINE_FULL_TAG, "\\.\\d+$", "")
 }
 
+# This variable must be kept until no LTS depends on it (2.541.x)
 variable "JAVA17_VERSION" {
   default = "17.0.17_10"
 }
