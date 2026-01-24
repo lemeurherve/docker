@@ -55,23 +55,20 @@ ARG WAR_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war
 ENV WAR_URL=${WAR_URL}
 ENV WAR_ASC_URL=${WAR_URL}.asc
 
-COPY jenkins.io-2026.key /ProgramData/Jenkins/jenkins-key.pub
+COPY jenkins.io-2026.key /temp/jenkins-key.pub
 
 # could use ADD but this one does not check Last-Modified header
 # # see https://github.com/docker/docker/issues/8331
-RUN Write-Host $env:WAR_URL; Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war; `
-    Write-Host $env:WAR_ASC_URL; Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war.asc
+RUN New-Item -ItemType Directory -Path C:/war | Out-Null ; `
+    Write-Host $env:WAR_URL; Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/war/jenkins.war; `
+    Write-Host $env:WAR_ASC_URL; Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/war/jenkins.war.asc
 
 ARG GNUGPG_VERSION=2.5.16_20251230
-RUN Invoke-WebRequest -Uri https://www.gnupg.org/ftp/gcrypt/binary/gnupg-w32-${env:GNUGPG_VERSION}.exe -OutFile C:/ProgramData/Jenkins/gnupg.exe ; `
-    Start-Process C:/ProgramData/Jenkins/gnupg.exe -ArgumentList "/S" -Wait ; `
-    Remove-Item C:/ProgramData/Jenkins/gnupg.exe
-
-ENV PATH="C:\Program Files (x86)\GnuPG\bin;$PATH"
-
-RUN gpg --version; `
-    gpg --import C:/ProgramData/Jenkins/jenkins-key.pub; `
-    gpg --verify C:/ProgramData/Jenkins/jenkins.war.asc C:/ProgramData/Jenkins/jenkins.war
+RUN Invoke-WebRequest -Uri https://www.gnupg.org/ftp/gcrypt/binary/gnupg-w32-${env:GNUGPG_VERSION}.exe -OutFile C:/war/gnupg.exe ; `
+    Start-Process C:/war/gnupg.exe -ArgumentList '/S' -Wait ; `
+    & 'C:/Program Files/GnuPG/bin/gpg.exe' --version; `
+    & 'C:/Program Files/GnuPG/bin/gpg.exe' --import C:/war/jenkins-key.pub; `
+    & 'C:/Program Files/GnuPG/bin/gpg.exe' --verify C:/war/jenkins.war.asc C:/war/jenkins.war
 
 FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION}" AS controller
 
@@ -79,7 +76,7 @@ ARG JAVA_HOME="C:/openjdk-17"
 ENV JAVA_HOME=${JAVA_HOME}
 
 COPY --from=jre-build /javaruntime $JAVA_HOME
-COPY --from=jre-build /ProgramData/Jenkins/jenkins.war /ProgramData/Jenkins/jenkins.war
+COPY --from=jre-build /war/jenkins.war ProgramData/Jenkins/jenkins.war
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
