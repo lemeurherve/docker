@@ -68,7 +68,7 @@ RUN Invoke-WebRequest -Uri https://www.gnupg.org/ftp/gcrypt/binary/gnupg-w32-${e
     Start-Process C:/war/gnupg.exe -ArgumentList '/S' -Wait ; `
     & 'C:/Program Files/GnuPG/bin/gpg.exe' --version; `
     & 'C:/Program Files/GnuPG/bin/gpg.exe' --import C:/war/jenkins-key.pub; `
-    & 'C:/Program Files/GnuPG/bin/gpg.exe' --verify C:/war/jenkins.war.asc C:/war/jenkins.war
+    & 'C:/Program Files/GnuPG/bin/gpg.exe' --trust-model always --verify C:/war/jenkins.war.asc C:/war/jenkins.war
 
 FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION}" AS controller
 
