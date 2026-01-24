@@ -102,14 +102,18 @@ ENV JENKINS_VERSION=${JENKINS_VERSION:-2.547}
 
 # Can be used to customize where jenkins.war get downloaded from
 ARG WAR_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war
+ARG WAR_ASC_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war.asc
 COPY jenkins.io-2026.key /temp/jenkins-key.pub
 
 # could use ADD but this one does not check Last-Modified header
 # # see https://github.com/docker/docker/issues/8331
-RUN Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war; `
-    Invoke-WebRequest -Uri "$env:WAR_URL".asc -OutFile C:/temp/jenkins.war.asc; `
-    gpg --import C:/temp/jenkins-key.pub; `
-    gpg --verify C:/temp/jenkins.war.asc C:/ProgramData/Jenkins/jenkins.war; `
+# RUN Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war; `
+#     Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war.asc; `
+#     gpg --import C:/temp/jenkins-key.pub; `
+RUN Write-Host $env:WAR_URL; Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war;
+RUN Write-Host $env:WAR_ASC_URL; Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/ProgramData/Jenkins/jenkins.war.asc;
+RUN gpg --import C:/temp/jenkins-key.pub; `
+    gpg --verify C:/ProgramData/Jenkins/jenkins.war.asc C:/ProgramData/Jenkins/jenkins.war; `
     Remove-Item -Path C:/temp -Recurse | Out-Null
 
 ENV JENKINS_UC=https://updates.jenkins.io
