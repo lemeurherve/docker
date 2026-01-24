@@ -55,13 +55,13 @@ ARG WAR_URL=https://get.jenkins.io/war/${JENKINS_VERSION}/jenkins.war
 ENV WAR_URL=${WAR_URL}
 ENV WAR_ASC_URL=${WAR_URL}.asc
 
-COPY jenkins.io-2026.key /temp/jenkins-key.pub
-
 # could use ADD but this one does not check Last-Modified header
 # # see https://github.com/docker/docker/issues/8331
 RUN New-Item -ItemType Directory -Path C:/war | Out-Null ; `
     Write-Host $env:WAR_URL; Invoke-WebRequest -Uri "$env:WAR_URL" -OutFile C:/war/jenkins.war; `
     Write-Host $env:WAR_ASC_URL; Invoke-WebRequest -Uri "$env:WAR_ASC_URL" -OutFile C:/war/jenkins.war.asc
+
+COPY jenkins.io-2026.key /war/jenkins-key.pub
 
 ARG GNUGPG_VERSION=2.5.16_20251230
 RUN Invoke-WebRequest -Uri https://www.gnupg.org/ftp/gcrypt/binary/gnupg-w32-${env:GNUGPG_VERSION}.exe -OutFile C:/war/gnupg.exe ; `
