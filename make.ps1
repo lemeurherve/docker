@@ -194,7 +194,7 @@ if ($target -eq 'build') {
     switch ($DryRun) {
         $true { Write-Host "(dry-run) $baseDockerBuildCmd" }
         # $false { Invoke-Expression $baseDockerBuildCmd }
-        $false { docker buildx bake --progress=plain --file=docker-bake.hcl $ImageType --print }
+        $false { docker buildx bake --progress=plain --file=docker-bake.hcl $ImageType }
     }
 
     if ($lastExitCode -ne 0) {
