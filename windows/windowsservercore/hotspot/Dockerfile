@@ -77,12 +77,12 @@ FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION}" AS controller
 ARG JAVA_HOME="C:/openjdk-17"
 ENV JAVA_HOME=${JAVA_HOME}
 
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
 RUN New-Item -ItemType Directory -Force -Path C:/ProgramData/Jenkins | Out-Null
 
 COPY --from=jre-and-war /javaruntime $JAVA_HOME
 COPY --from=jre-and-war /war/jenkins.war C:/ProgramData/Jenkins/jenkins.war
-
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # Add java in PATH
 RUN $CurrentPath = (Get-Itemproperty -path 'hklm:\system\currentcontrolset\control\session manager\environment' -Name Path).Path ; `
