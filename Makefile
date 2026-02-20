@@ -49,7 +49,9 @@ bake_default_target := all
 
 check-reqs:
 ## Build requirements
+ifeq ($(OS),linux)
 	@$(call check_cli,bash)
+endif
 	@$(call check_cli,git)
 	@$(call check_cli,docker)
 	@docker info | grep 'buildx:' >/dev/null 2>&1 || { echo "Error: Docker BuildX plugin required but not found. Exiting." ; exit 1 ; }
