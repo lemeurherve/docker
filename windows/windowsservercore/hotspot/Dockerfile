@@ -77,6 +77,8 @@ FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION}" AS controller
 ARG JAVA_HOME="C:/openjdk-17"
 ENV JAVA_HOME=${JAVA_HOME}
 
+RUN New-Item -ItemType Directory -Force -Path C:/ProgramData/Jenkins | Out-Null
+
 COPY --from=jre-and-war /javaruntime $JAVA_HOME
 COPY --from=jre-and-war /war/jenkins.war C:/ProgramData/Jenkins/jenkins.war
 
@@ -109,10 +111,12 @@ RUN New-LocalUser -Name $env:user -AccountNeverExpires -Description 'Jenkins Use
     Set-Localuser -Name $env:user -PasswordNeverExpires $true | Out-Null ; `
     Add-LocalGroupMember -Group "Administrators" -Member "${env:user}" ; `
     New-Item -Type Directory -Force -Path "C:/ProgramData/Jenkins" | Out-Null ; `
+    New-Item -Type Directory -Force -Path "$env:JENKINS_HOME" | Out-Null ; `
     icacls.exe "C:/ProgramData/Jenkins" /setowner ${env:user} | Out-Null ; `
     icacls.exe "C:/ProgramData/Jenkins" /inheritance:r | Out-Null ; `
     icacls.exe "C:/ProgramData/Jenkins" /grant:r $('{0}:(CI)(OI)(F)' -f $env:user) /grant 'Administrators:(CI)(OI)(F)' | Out-Null ; `
     icacls.exe "$env:JENKINS_HOME" /setowner ${env:user} | Out-Null ; `
+    icacls.exe "$env:JENKINS_HOME" /inheritance:r | Out-Null ; `
     icacls.exe "$env:JENKINS_HOME" /grant:r $('{0}:(CI)(OI)(F)' -f $env:user) /grant 'Administrators:(CI)(OI)(F)' | Out-Null
 
 USER ${user}
