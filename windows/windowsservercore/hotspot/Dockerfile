@@ -115,7 +115,6 @@ RUN New-LocalUser -Name $env:user -AccountNeverExpires -Description 'Jenkins Use
     icacls.exe "C:/ProgramData/Jenkins" /setowner ${env:user} | Out-Null ; `
     icacls.exe "C:/ProgramData/Jenkins" /inheritance:r | Out-Null ; `
     icacls.exe "C:/ProgramData/Jenkins" /grant:r $('{0}:(CI)(OI)(F)' -f $env:user) /grant 'Administrators:(CI)(OI)(F)' | Out-Null ; `
-    icacls.exe "$env:JENKINS_HOME" /setowner ${env:user} | Out-Null ; `
     icacls.exe "$env:JENKINS_HOME" /inheritance:r | Out-Null ; `
     icacls.exe "$env:JENKINS_HOME" /grant:r $('{0}:(CI)(OI)(F)' -f $env:user) /grant 'Administrators:(CI)(OI)(F)' | Out-Null
 
