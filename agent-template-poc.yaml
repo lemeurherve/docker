@@ -11,12 +11,6 @@ tasks:
       # Don't set this before Set-ExecutionPolicy as it throws an error
       $ErrorActionPreference = "stop"
 
-      ## Setup datadog
-      (Get-Content C:\ProgramData\Datadog\datadog.yaml -Raw) -Replace 'api_key:', 'api_key: 66880cdc51798cf0c142a878562ad58d' | Set-Content C:\ProgramData\Datadog\datadog.yaml
-      Add-Content -Path C:\ProgramData\Datadog\datadog.yaml -Value "tags: [`"jenkins_controller:ci.jenkins.io`", `"jenkins_agent_type:ephemeral_ec2`", `"jenkins_agent_description:Windows Infra Test`"]"
-      & "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" restart-service
-      Write-Output 'Datadog service setup'
-      Get-Date
 
       ## Disable WinRM
       Remove-Item -Path WSMan:\Localhost\listener\listener* -Recurse
@@ -127,13 +121,6 @@ tasks:
 
       ###### SETUP BUILDX: https://github.com/moby/buildkit/blob/master/docs/windows.md #######
 
-      # Setup containerd by following the setup instructions here. (Currently, we only support the containerd worker.)
-      ## install-containerd.ps1
-
-
-
-
-
       ## From https://github.com/containerd/containerd/blob/be50f8f1b23e359e65e066740097e089c275929b/docs/getting-started.md\#installing-containerd-on-windows
 
       # If containerd previously installed run:
@@ -167,15 +154,7 @@ tasks:
       containerd.exe --register-service
       Start-Service containerd
 
-
-
-
-
-
-      # Setup the CNI, see details in the CNI / Networking Setup section.
-      ## setup-cni.ps1
-
-
+      ## Setup the CNI, see details in the CNI / Networking Setup section.
       ## From https://github.com/moby/buildkit/blob/c8178843b73773f1703bd73f5101041da4506157/docs/windows.md#cni--networking-setup
 
       # get the CNI plugins (binaries)
@@ -234,31 +213,6 @@ tasks:
       # ctr i pull mcr.microsoft.com/windows/nanoserver:ltsc20$YY
       # ctr run --rm --cni mcr.microsoft.com/windows/nanoserver:ltsc20$YY cni-test cmd /C curl -I example.com
 
-
-
-
-
-
-
-      # Start the containerd service, if not yet started.
-
-      # Download and extract:
-
-      # $url = "https://api.github.com/repos/moby/buildkit/releases/latest"
-      # $version = (Invoke-RestMethod -Uri $url -UseBasicParsing).tag_name
-      # $arch = "amd64" # arm64 binary available too
-      # curl.exe -fSLO https://github.com/moby/buildkit/releases/download/$version/buildkit-$version.windows-$arch.tar.gz
-      # # there could be another `.\bin` directory from containerd instructions
-      # # you can move those
-      # mv bin bin2
-      # tar.exe xvf .\buildkit-$version.windows-$arch.tar.gz
-      # ## x bin/
-      # ## x bin/buildctl.exe
-      # ## x bin/buildkitd.exe
-
-
-
-
       ## From https://github.com/moby/buildkit/blob/master/docs/windows.md#setup-instructions
 
       $url = "https://api.github.com/repos/moby/buildkit/releases/latest"
@@ -294,33 +248,7 @@ tasks:
       # time="2024-02-26T10:42:16+03:00" level=warning msg="currently, only the default worker can be used."
       # time="2024-02-26T10:42:16+03:00" level=info msg="running server on //./pipe/buildkitd"
 
-      # Running buildkitd with the CNI:
-
-      # Note that the above simple run will not have the networking bit setup; for instance you won't be able to access the internet from the builds e.g. downloading resources.
-
-      # Follow the instructions in the CNI / Networking Setup section. Once that is done, you can now start buildkitd providing the binary and config paths to the flags. These are the same paths used by containerd too:
-
-      # buildkitd `
-      #     --containerd-cni-config-path="C:\Program Files\containerd\cni\conf\0-containerd-nat.conf" `
-      #     --containerd-cni-binary-dir="C:\Program Files\containerd\cni\bin"
-
-      #     NOTE: the above CNI paths are now set by default, you can now just run buildkitd.
-
-      # You can also run buildkitd as a Windows Service:
-
-      # buildkitd `
-      #     --register-service `
-      #     --service-name buildkitd `
-      #     --containerd-cni-config-path="C:\Program Files\containerd\cni\conf\0-containerd-nat.conf" `
-      #     --containerd-cni-binary-dir="C:\Program Files\containerd\cni\bin" `
-      #     --debug `
-      #     --log-file="C:\Windows\Temp\buildkitd.log"
-
-      #     NOTE: the above log-file path is just an example, but make sure to set up your logs properly.
-
-
       ## start-buildkit-with-cni-as-service.ps1
-
       ## From https://github.com/moby/buildkit/blob/c8178843b73773f1703bd73f5101041da4506157/docs/windows.md#setup-instructions
 
       buildkitd `
@@ -336,20 +264,3 @@ tasks:
 
       # We can also set the service to start automatically:
       Set-Service -StartupType Automatic buildkitd
-
-
-      # buildkitd on Windows depends on containerd. You can make the above registered buildkitd service dependent on containerd (the naming may vary). The space after = is required:
-
-      # sc.exe config buildkitd depend= containerd
-
-      # We can also set the service to start automatically:
-
-      # Set-Service -StartupType Automatic buildkitd
-
-      # In another terminal (still elevated), try out a buildctl command to test that the setup is good:
-
-      # PS> buildctl debug info
-      # BuildKit: github.com/moby/buildkit v0.0.0+unknown
-
-      #     NOTE: the version is v0.0.0+unknown since this is still a release candidate (RC).
-
