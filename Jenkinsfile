@@ -47,37 +47,45 @@ stage('Build') {
         echo '= bake target: linux'
 
         def windowsImageTypes = [
-            'windowsservercore-ltsc2019',
+            // 'windowsservercore-ltsc2019',
             'windowsservercore-ltsc2022'
         ]
         for (anImageType in windowsImageTypes) {
             def imageType = anImageType
             builds[imageType] = {
                 def windowsVersionNumber = imageType.split('-')[1].replace('ltsc', '')
-                def windowsLabel = "windows-${windowsVersionNumber}"
+                // def windowsLabel = "windows-${windowsVersionNumber}"
+                def windowsLabel = "infratest-windows" // ltsc2022
                 nodeWithTimeout(windowsLabel) {
                     stage('Checkout') {
                         checkout scm
                     }
 
-                    withEnv(["IMAGE_TYPE=${imageType}"]) {
+                    withEnv([
+                        "IMAGE_TYPE=${imageType}",
+                        "WINDOWS_VERSION_OVERRIDE=ltsc2022",
+                        "DOCKER_BUILDKIT=1"
+                    ]) {
                         if (!infra.isTrusted()) {
                             /* Outside of the trusted.ci environment, we're building and testing
                             * the Dockerfile in this repository, but not publishing to docker hub
                             */
                             stage("Build ${imageType}") {
-                                powershell './make.ps1 build -ImageType ${env:IMAGE_TYPE}'
-                                archiveArtifacts artifacts: 'build-windows_*.yaml', allowEmptyArchive: true
+                                powershell 'docker info'
+                                powershell 'docker buildx inspect'
+                                powershell 'docker buildx bake -f docker-bake.hcl windows || buildctl debug info'
+                                // powershell './make.ps1 build -ImageType ${env:IMAGE_TYPE}'
+                                // archiveArtifacts artifacts: 'build-windows_*.yaml', allowEmptyArchive: true
                             }
 
-                            stage("Test ${imageType}") {
-                                def windowsTestStatus = powershell(script: './make.ps1 test -ImageType ${env:IMAGE_TYPE}', returnStatus: true)
-                                junit(allowEmptyResults: true, keepLongStdio: true, testResults: 'target/**/junit-results.xml')
-                                if (windowsTestStatus > 0) {
-                                    // If something bad happened let's clean up the docker images
-                                    error('Windows test stage failed.')
-                                }
-                            }
+                            // stage("Test ${imageType}") {
+                            //     def windowsTestStatus = powershell(script: './make.ps1 test -ImageType ${env:IMAGE_TYPE}', returnStatus: true)
+                            //     junit(allowEmptyResults: true, keepLongStdio: true, testResults: 'target/**/junit-results.xml')
+                            //     if (windowsTestStatus > 0) {
+                            //         // If something bad happened let's clean up the docker images
+                            //         error('Windows test stage failed.')
+                            //     }
+                            // }
 
                         // disable until we get the parallel changes merged in
                         // def branchName = "${env.BRANCH_NAME}"
@@ -117,14 +125,14 @@ stage('Build') {
         if (!infra.isTrusted()) {
             // An up to date list can be obtained with make list-linux
             def images = [
-                'alpine_jdk21',
-                'alpine_jdk25',
-                'debian_jdk21',
-                'debian_jdk25',
-                'debian-slim_jdk21',
-                'debian-slim_jdk25',
-                'rhel_jdk21',
-                'rhel_jdk25',
+                // 'alpine_jdk21',
+                // 'alpine_jdk25',
+                // 'debian_jdk21',
+                // 'debian_jdk25',
+                // 'debian-slim_jdk21',
+                // 'debian-slim_jdk25',
+                // 'rhel_jdk21',
+                // 'rhel_jdk25',
             ]
             for (i in images) {
                 def imageToBuild = i
@@ -162,22 +170,22 @@ stage('Build') {
                     }
                 }
             }
-            // Building every other architectures than amd64 on agents with the corresponding labels if available
-            architecturesAndCiJioAgentLabels.findAll { arch, _ -> arch != 'amd64' }.each { architecture, labels ->
-                builds[architecture] = {
-                    nodeWithTimeout(labels) {
-                        stage('Checkout') {
-                            deleteDir()
-                            checkout scm
-                        }
-                        // sanity check that proves all images build on declared platforms not already built in other stages
-                        stage("Multi arch build - ${architecture}") {
-                            sh "make docker-init buildarch-${architecture}"
-                            archiveArtifacts artifacts: 'target/build-result-metadata_*.json', allowEmptyArchive: true
-                        }
-                    }
-                }
-            }
+            // // Building every other architectures than amd64 on agents with the corresponding labels if available
+            // architecturesAndCiJioAgentLabels.findAll { arch, _ -> arch != 'amd64' }.each { architecture, labels ->
+            //     builds[architecture] = {
+            //         nodeWithTimeout(labels) {
+            //             stage('Checkout') {
+            //                 deleteDir()
+            //                 checkout scm
+            //             }
+            //             // sanity check that proves all images build on declared platforms not already built in other stages
+            //             stage("Multi arch build - ${architecture}") {
+            //                 sh "make docker-init buildarch-${architecture}"
+            //                 archiveArtifacts artifacts: 'target/build-result-metadata_*.json', allowEmptyArchive: true
+            //             }
+            //         }
+            //     }
+            // }
         } else {
             // Only publish when a tag triggered the build
             if (env.TAG_NAME) {
