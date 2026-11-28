@@ -6,6 +6,8 @@
 #   -d debug
 
 : "${JENKINS_VERSION:?Variable \$JENKINS_VERSION not set or empty.}"
+: "${LATEST_WEEKLY:?Variable \$LATEST_WEEKLY not set or empty.}"
+: "${LATEST_LTS:?Variable \$LATEST_LTS not set or empty.}"
 
 set -eu -o pipefail
 
@@ -52,28 +54,6 @@ fi
 
 if [[ "${dry_run}" = true ]]; then
     echo "Dry run, will not publish images"
-fi
-
-# Retrieve all the Jenkins versions from Artifactory
-all_jenkins_versions="$(curl --disable --fail --silent --show-error --location \
-        https://repo.jenkins-ci.org/releases/org/jenkins-ci/main/jenkins-war/maven-metadata.xml \
-    | grep '<version>.*</version>')"
-
-latest_lts_version="$(echo "${all_jenkins_versions}" | grep -E -o '[0-9]\.[0-9]+\.[0-9]' | sort-versions | tail -n1)"
-latest_weekly_version="$(echo "${all_jenkins_versions}" | grep -E -o '[0-9]\.[0-9]+' | sort-versions | tail -n 1)"
-
-if [[ "${JENKINS_VERSION}" == "${latest_weekly_version}" ]]
-then
-    LATEST_WEEKLY="true"
-else
-    LATEST_WEEKLY="false"
-fi
-
-if [[ "${JENKINS_VERSION}" == "${latest_lts_version}" ]]
-then
-    LATEST_LTS="true"
-else
-    LATEST_LTS="false"
 fi
 
 build_opts=("--pull")

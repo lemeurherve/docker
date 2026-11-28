@@ -11,8 +11,21 @@ H 6,21 * * 3''')])
 
 properties(listOfProperties)
 
-// Default environment variable set to allow images publication from trusted.ci.jenkins.io
-def envVars = ['PUBLISH=true']
+
+// Jenkins version used in builds
+def jenkinsVersion = '2.592'
+
+def tag = env.TAG_NAME
+if (tag) {
+    // Split to ensure any suffix is not taken in account (but allow suffix tags to trigger rebuilds)
+    jenkinsVersion = env.TAG_NAME.split('-')[0]
+}
+
+def envVars = [
+    "JENKINS_VERSION=${jenkinsVersion}",
+    // Default environment variable set to allow images publication from trusted.ci.jenkins.io
+    'PUBLISH=true',
+]
 
 // List of dedicated architecture Linux builds and corresponding ci.jenkins.io agent labels
 // Note: not taken in account on trusted.ci.jenkins.io as Linux builds are multiarch there
@@ -94,13 +107,10 @@ stage('Build') {
                             }
                         } else {
                             // Only publish when a tag triggered the build & the publication is enabled (ie not simulating a LTS)
-                            if (env.TAG_NAME && (env.PUBLISH == 'true')) {
-                                // Split to ensure any suffix is not taken in account (but allow suffix tags to trigger rebuilds)
-                                String jenkins_version = env.TAG_NAME.split('-')[0]
+                            if (tag && (env.PUBLISH == 'true')) {
                                 // Setting WAR_URL to download war from Artifactory instead of mirrors on publication from trusted.ci.jenkins.io
                                 withEnv([
-                                    "JENKINS_VERSION=${jenkins_version}",
-                                    "WAR_URL=https://repo.jenkins-ci.org/public/org/jenkins-ci/main/jenkins-war/${jenkins_version}/jenkins-war-${jenkins_version}.war"
+                                    "WAR_URL=https://repo.jenkins-ci.org/public/org/jenkins-ci/main/jenkins-war/${jenkinsVersion}/jenkins-war-${jenkinsVersion}.war"
                                 ]) {
                                     stage('Publish') {
                                         infra.withContainerRegistry {
@@ -185,13 +195,10 @@ stage('Build') {
         } else {
             // Only publish when a tag triggered the build
             if (env.TAG_NAME) {
-                // Split to ensure any suffix is not taken in account (but allow suffix tags to trigger rebuilds)
-                String jenkins_version = env.TAG_NAME.split('-')[0]
                 builds['linux'] = {
                     // Setting WAR_URL to download war from Artifactory instead of mirrors on publication from trusted.ci.jenkins.io
                     withEnv([
-                        "JENKINS_VERSION=${jenkins_version}",
-                        "WAR_URL=https://repo.jenkins-ci.org/public/org/jenkins-ci/main/jenkins-war/${jenkins_version}/jenkins-war-${jenkins_version}.war"
+                        "WAR_URL=https://repo.jenkins-ci.org/public/org/jenkins-ci/main/jenkins-war/${jenkinsVersion}/jenkins-war-${jenkinsVersion}.war"
                     ]) {
                         nodeWithTimeout('docker') {
                             stage('Checkout') {
