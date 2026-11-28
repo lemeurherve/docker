@@ -80,6 +80,16 @@ targets:
       file: make.ps1
       matchpattern: JenkinsVersion = '(\d+\.\d+)'
       replacepattern: JenkinsVersion = '{{ source "latestVersion" }}'
+  # TODO: uncomment when Jenkinsfile has been updated on master
+  # updateJenkinsVersionInJenkinsfile:
+  #   name: Update value of jenkinsVersion in Jenkinsfile
+  #   kind: file
+  #   scmid: default
+  #   sourceid: latestVersion
+  #   spec:
+  #     file: Jenkinsfile
+  #     matchpattern: JenkinsVersion = '(\d+\.\d+)'
+  #     replacepattern: JenkinsVersion = '{{ source "latestVersion" }}'
 
 actions:
   default:

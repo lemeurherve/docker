@@ -9,6 +9,10 @@ export BUILDKIT_PROGRESS=plain
 ## Required to have the commit SHA added as a Docker image label
 export COMMIT_SHA=$(shell git rev-parse HEAD)
 
+jenkins_versions := $(shell JENKINS_VERSION="$(JENKINS_VERSION)" ./tools/jenkins-versions.sh)
+export LATEST_WEEKLY := $(patsubst LATEST_WEEKLY=%,%,$(filter LATEST_WEEKLY=%,$(jenkins_versions)))
+export LATEST_LTS := $(patsubst LATEST_LTS=%,%,$(filter LATEST_LTS=%,$(jenkins_versions)))
+
 current_os := $(shell uname -s)
 current_arch := $(shell uname -m)
 
